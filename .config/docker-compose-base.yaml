@@ -1,0 +1,38 @@
+services:
+  grafana:
+    user: root
+    container_name: 'dartsisas-rendezvous3d-panel'
+    build:
+      context: .
+      args:
+        grafana_image: ${GRAFANA_IMAGE:-grafana-enterprise}
+        grafana_version: ${GRAFANA_VERSION:-12.0.2}
+        development: ${DEVELOPMENT:-false}
+        anonymous_auth_enabled: ${ANONYMOUS_AUTH_ENABLED:-true}
+    ports:
+      - 3000:3000/tcp
+    volumes:
+      - ../dist:/var/lib/grafana/plugins/dartsisas-rendezvous3d-panel
+      - ../provisioning:/etc/grafana/provisioning
+      - ..:/root/dartsisas-rendezvous3d-panel
+    environment:
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_DASHBOARDS_MIN_REFRESH_INTERVAL=1s
+      - GF_PLUGINS_ENABLE_ALPHA=true
+      - GF_LOG_LEVEL=debug
+      - GF_DATE_FORMATS_DEFAULT_TIMEZONE=UTC
+      - GF_PLUGINS_PREINSTALL=grafana-xyzchart-panel
+      - GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=dartsisas-rendezvous3d-panel
+      - GF_PLUGINS_PLUGIN_ADMIN_ENABLED=true
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=${DOCKER_INFLUXDB_INIT_USERNAME}
+      - DOCKER_INFLUXDB_INIT_PASSWORD=${DOCKER_INFLUXDB_INIT_PASSWORD}
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN}
+      - DOCKER_INFLUXDB_INIT_ORG=${DOCKER_INFLUXDB_INIT_ORG}
+      - DOCKER_INFLUXDB_INIT_BUCKET=${DOCKER_INFLUXDB_INIT_BUCKET}
+      - GF_PATHS_PLUGINS=/var/lib/grafana/plugins
+      - NODE_ENV=development
+      - GF_LOG_FILTERS=plugin.dartsisas-rendezvous3d-panel:debug
+      - GF_DATAPROXY_LOGGING=1

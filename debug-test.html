@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ThreeScene Debug Test</title>
+    <style>
+        body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+        #container { 
+            width: 800px; 
+            height: 600px; 
+            background-color: #f0f0f0;
+            border: 2px solid #333;
+            margin: 20px 0;
+        }
+        .info {
+            background: #e7f3ff;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>ThreeScene Component Debug Test</h1>
+    <div class="info">
+        <p>この画面では、Grafanaプラグインの ThreeScene コンポーネントが正常に動作するかをテストします。</p>
+        <p>期待される結果：コンテナ内に座標軸が表示され、背景色が黒く表示されること</p>
+    </div>
+    
+    <div id="container"></div>
+    
+    <div class="info">
+        <p>ブラウザのコンソール（F12）を開いて、エラーやログメッセージを確認してください。</p>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.157.0/build/three.module.js",
+            "three/examples/jsm/controls/OrbitControls": "https://unpkg.com/three@0.157.0/examples/jsm/controls/OrbitControls.js"
+        }
+    }
+    </script>
+    
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+
+        console.log('=== ThreeScene Debug Test Started ===');
+
+        // Simple mock objects to test the basic structure
+        class MockDataFieldProcessor {
+            constructor(data) {
+                this.data = data;
+            }
+            
+            getDataFieldValue(field, defaultValue = 0) {
+                if (!field) return [defaultValue];
+                if (field.sourceType === 'const') {
+                    return [parseFloat(field.value) || defaultValue];
+                }
+                return [defaultValue];
+            }
+            
+            getLastDataFieldValue(field, defaultValue = 0) {
+                const values = this.getDataFieldValue(field, defaultValue);
+                return values[values.length - 1] || defaultValue;
+            }
+        }
+
+        class MockBoundsCalculator {
+            constructor(dataProcessor) {
+                this.dataProcessor = dataProcessor;
+            }
+            
+            calculateAutoScaleLimits(objects) {
+                return {
+                    minX: -50, maxX: 50,
+                    minY: -50, maxY: 50,
+                    minZ: -50, maxZ: 50
+                };
+            }
+        }
+
+        class MockCameraController {
+            constructor(camera, controls, boundsCalculator, objectsRef) {
+                this.camera = camera;
+                this.controls = controls;
+            }
+            
+            updateCameraPosition(targetObjectId, objects) {
+                console.log('Mock camera controller: position updated');
+            }
+        }
+
+        // Test the basic Three.js scene setup like in ThreeScene component
+        function initializeTestScene() {
+            const container = document.getElementById('container');
+            const width = 800;
+            const height = 600;
+            const backgroundColor = '#000000';
+            const showAxis = true;
+
+            console.log('Initializing test scene...');
+
+            try {
+                // Scene setup
+                const scene = new THREE.Scene();
+                scene.background = new THREE.Color(backgroundColor);
+                console.log('✓ Scene created');
+
+                // Camera setup
+                const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 15000000000);
+                camera.position.set(50, 50, 50);
+                console.log('✓ Camera created');
+
+                // Renderer setup
+                const renderer = new THREE.WebGLRenderer({ antialias: true });
+                renderer.setSize(width, height);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                console.log('✓ Renderer created');
+
+                // Controls setup
+                const controls = new OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                controls.enabled = true;
+                console.log('✓ Controls created');
+
+                // Lighting setup
+                const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+                scene.add(ambientLight);
+                console.log('✓ Ambient light added');
+
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+                directionalLight.position.set(100, 100, 50);
+                directionalLight.castShadow = true;
+                scene.add(directionalLight);
+                console.log('✓ Directional light added');
+
+                // Add coordinate axes
+                if (showAxis) {
+                    const axesHelper = new THREE.AxesHelper(10);
+                    scene.add(axesHelper);
+                    console.log('✓ Axes helper added');
+                }
+
+                // Test sphere
+                const geometry = new THREE.SphereGeometry(5, 32, 32);
+                const material = new THREE.MeshLambertMaterial({ color: '#ff0000' });
+                const sphere = new THREE.Mesh(geometry, material);
+                sphere.position.set(0, 0, 0);
+                scene.add(sphere);
+                console.log('✓ Test sphere added');
+
+                // Add to DOM
+                container.appendChild(renderer.domElement);
+                console.log('✓ Canvas added to DOM');
+
+                // Initial render
+                renderer.render(scene, camera);
+                console.log('✓ Initial render completed');
+
+                // Animation loop
+                function animate() {
+                    controls.update();
+                    renderer.render(scene, camera);
+                    requestAnimationFrame(animate);
+                }
+                animate();
+                console.log('✓ Animation loop started');
+
+                console.log('=== Scene children count:', scene.children.length, '===');
+                scene.children.forEach((child, index) => {
+                    console.log(`Child ${index}:`, child.type || child.constructor.name);
+                });
+
+                console.log('=== Test completed successfully ===');
+
+            } catch (error) {
+                console.error('❌ Error during scene initialization:', error);
+            }
+        }
+
+        // Start the test
+        initializeTestScene();
+    </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://raw.githubusercontent.com/grafana/grafana/main/docs/sources/developers/plugins/plugin.schema.json",
+  "type": "panel",
+  "name": "Rendezvous 3D Panel",
+  "id": "dartsisas-rendezvous3d-panel",
+  "info": {
+    "keywords": ["panel", "three.js", "3D", "visualization"],
+    "description": "Three.js based 3D visualization panel for displaying points, lines, polylines, and 3D models in a 3D space",
+    "author": {
+      "name": "Grafana Developer"
+    },
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "links": [],
+    "screenshots": [],
+    "version": "%VERSION%",
+    "updated": "%TODAY%"
+  },
+  "dependencies": {
+    "grafanaDependency": ">=10.4.0",
+    "plugins": []
+  }
+}

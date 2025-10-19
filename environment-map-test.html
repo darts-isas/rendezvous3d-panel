@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Environment Map Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #000;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .viewer {
+            width: 800px;
+            height: 600px;
+            border: 1px solid #333;
+        }
+        
+        .controls {
+            width: 300px;
+            padding: 20px;
+            background-color: #111;
+            border-radius: 8px;
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+        
+        .control-group input[type="color"] {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        .control-group input[type="range"] {
+            width: 100%;
+            margin-top: 5px;
+        }
+        
+        .info {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #222;
+            border-radius: 4px;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <h1>グラデーション環境マップテスト</h1>
+    <p>金属オブジェクトの見た目を改善する環境マップの実装テスト</p>
+    
+    <div class="container">
+        <div id="threejs-container" class="viewer"></div>
+        
+        <div class="controls">
+            <h3>環境マップ設定</h3>
+            
+            <div class="control-group">
+                <label for="topColor">上部色（地球大気）</label>
+                <input type="color" id="topColor" value="#87ceeb">
+            </div>
+            
+            <div class="control-group">
+                <label for="bottomColor">下部色（太陽光）</label>
+                <input type="color" id="bottomColor" value="#ffb366">
+            </div>
+            
+            <div class="control-group">
+                <label for="horizonColor">中間色（ニュートラル）</label>
+                <input type="color" id="horizonColor" value="#b8b8b8">
+            </div>
+            
+            <div class="control-group">
+                <label for="intensity">環境マップ強度</label>
+                <input type="range" id="intensity" min="0" max="1" step="0.1" value="0.6">
+                <span id="intensityValue">0.6</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="envIntensity">シーン環境強度</label>
+                <input type="range" id="envIntensity" min="0" max="2" step="0.1" value="0.6">
+                <span id="envIntensityValue">0.6</span>
+            </div>
+            
+            <div class="info">
+                <h4>使用方法：</h4>
+                <ul>
+                    <li>マウスドラッグ：視点回転</li>
+                    <li>マウスホイール：ズーム</li>
+                    <li>色設定：リアルタイムで反映</li>
+                    <li>金属球体に環境マップの反射効果が適用されます</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'https://unpkg.com/three@0.157.0/build/three.module.js';
+        import { OrbitControls } from 'https://unpkg.com/three@0.157.0/examples/jsm/controls/OrbitControls.js';
+
+        // シーンの設定
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+
+        const camera = new THREE.PerspectiveCamera(75, 800/600, 0.1, 1000);
+        camera.position.set(5, 5, 5);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(800, 600);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        
+        document.getElementById('threejs-container').appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+
+        // 簡易版環境マップジェネレーター
+        class SimpleEnvironmentMapGenerator {
+            constructor(renderer, resolution = 256) {
+                this.renderer = renderer;
+                this.cubeRenderTarget = new THREE.WebGLCubeRenderTarget(resolution);
+                this.cubeCamera = new THREE.CubeCamera(0.1, 1000, this.cubeRenderTarget);
+                
+                this.topColor = new THREE.Color(0x87CEEB);
+                this.bottomColor = new THREE.Color(0xFFB366);
+                this.horizonColor = new THREE.Color(0xB8B8B8);
+                this.intensityFactor = 0.6;
+                
+                this.createGradientScene();
+            }
+            
+            createGradientScene() {
+                this.gradientScene = new THREE.Scene();
+                
+                // 簡易的なグラデーション背景を作成
+                const vertexShader = `
+                    varying vec3 vWorldPosition;
+                    void main() {
+                        vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                        vWorldPosition = worldPosition.xyz;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `;
+                
+                const fragmentShader = `
+                    uniform vec3 topColor;
+                    uniform vec3 bottomColor;
+                    uniform vec3 horizonColor;
+                    uniform float intensityFactor;
+                    varying vec3 vWorldPosition;
+                    
+                    void main() {
+                        vec3 direction = normalize(vWorldPosition);
+                        float y = direction.y;
+                        
+                        float t = (y + 1.0) * 0.5;
+                        t = smoothstep(0.0, 1.0, t);
+                        
+                        vec3 color;
+                        if (t > 0.5) {
+                            float blend = (t - 0.5) * 2.0;
+                            color = mix(horizonColor, topColor, blend);
+                        } else {
+                            float blend = t * 2.0;
+                            color = mix(bottomColor, horizonColor, blend);
+                        }
+                        
+                        color *= intensityFactor;
+                        gl_FragColor = vec4(color, 1.0);
+                    }
+                `;
+                
+                const geometry = new THREE.SphereGeometry(500, 32, 16);
+                this.material = new THREE.ShaderMaterial({
+                    uniforms: {
+                        topColor: { value: this.topColor },
+                        bottomColor: { value: this.bottomColor },
+                        horizonColor: { value: this.horizonColor },
+                        intensityFactor: { value: this.intensityFactor }
+                    },
+                    vertexShader,
+                    fragmentShader,
+                    side: THREE.BackSide
+                });
+                
+                const mesh = new THREE.Mesh(geometry, this.material);
+                this.gradientScene.add(mesh);
+            }
+            
+            updateColors(topColor, bottomColor, horizonColor, intensityFactor) {
+                if (topColor) this.topColor = topColor;
+                if (bottomColor) this.bottomColor = bottomColor;
+                if (horizonColor) this.horizonColor = horizonColor;
+                if (intensityFactor !== undefined) this.intensityFactor = intensityFactor;
+                
+                this.material.uniforms.topColor.value = this.topColor;
+                this.material.uniforms.bottomColor.value = this.bottomColor;
+                this.material.uniforms.horizonColor.value = this.horizonColor;
+                this.material.uniforms.intensityFactor.value = this.intensityFactor;
+            }
+            
+            generateEnvironmentMap() {
+                const currentRenderTarget = this.renderer.getRenderTarget();
+                const currentXrEnabled = this.renderer.xr.enabled;
+                const currentShadowAutoUpdate = this.renderer.shadowMap.autoUpdate;
+                
+                this.renderer.xr.enabled = false;
+                this.renderer.shadowMap.autoUpdate = false;
+                
+                this.cubeCamera.position.set(0, 0, 0);
+                this.cubeCamera.update(this.renderer, this.gradientScene);
+                
+                this.renderer.xr.enabled = currentXrEnabled;
+                this.renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
+                this.renderer.setRenderTarget(currentRenderTarget);
+                
+                return this.cubeRenderTarget.texture;
+            }
+        }
+
+        // 環境マップジェネレーターの作成
+        const envMapGenerator = new SimpleEnvironmentMapGenerator(renderer);
+        let environmentMap = envMapGenerator.generateEnvironmentMap();
+        scene.environment = environmentMap;
+        scene.environmentIntensity = 0.6;
+
+        // ライティング
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.4);
+        directionalLight.position.set(10, 10, 5);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+
+        // テスト用の金属オブジェクト
+        const metalMaterial = new THREE.MeshStandardMaterial({
+            color: 0xcccccc,
+            metalness: 1.0,
+            roughness: 0.1,
+            envMapIntensity: 1.0
+        });
+
+        // 金属球体
+        const sphereGeometry = new THREE.SphereGeometry(1.5, 32, 32);
+        const sphere = new THREE.Mesh(sphereGeometry, metalMaterial);
+        sphere.position.set(-3, 0, 0);
+        sphere.castShadow = true;
+        sphere.receiveShadow = true;
+        scene.add(sphere);
+
+        // 金属立方体
+        const boxGeometry = new THREE.BoxGeometry(2, 2, 2);
+        const box = new THREE.Mesh(boxGeometry, metalMaterial);
+        box.position.set(0, 0, 0);
+        box.castShadow = true;
+        box.receiveShadow = true;
+        scene.add(box);
+
+        // 金属円錐
+        const coneGeometry = new THREE.ConeGeometry(1, 3, 8);
+        const cone = new THREE.Mesh(coneGeometry, metalMaterial);
+        cone.position.set(3, 0, 0);
+        cone.castShadow = true;
+        cone.receiveShadow = true;
+        scene.add(cone);
+
+        // 地面
+        const groundGeometry = new THREE.PlaneGeometry(20, 20);
+        const groundMaterial = new THREE.MeshStandardMaterial({
+            color: 0x333333,
+            roughness: 0.8,
+            metalness: 0.2
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -2;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // UI制御
+        const topColorPicker = document.getElementById('topColor');
+        const bottomColorPicker = document.getElementById('bottomColor');
+        const horizonColorPicker = document.getElementById('horizonColor');
+        const intensitySlider = document.getElementById('intensity');
+        const intensityValue = document.getElementById('intensityValue');
+        const envIntensitySlider = document.getElementById('envIntensity');
+        const envIntensityValue = document.getElementById('envIntensityValue');
+
+        function updateEnvironmentMap() {
+            const topColor = new THREE.Color(topColorPicker.value);
+            const bottomColor = new THREE.Color(bottomColorPicker.value);
+            const horizonColor = new THREE.Color(horizonColorPicker.value);
+            const intensity = parseFloat(intensitySlider.value);
+            
+            envMapGenerator.updateColors(topColor, bottomColor, horizonColor, intensity);
+            environmentMap = envMapGenerator.generateEnvironmentMap();
+            scene.environment = environmentMap;
+        }
+
+        topColorPicker.addEventListener('input', updateEnvironmentMap);
+        bottomColorPicker.addEventListener('input', updateEnvironmentMap);
+        horizonColorPicker.addEventListener('input', updateEnvironmentMap);
+        
+        intensitySlider.addEventListener('input', (e) => {
+            intensityValue.textContent = e.target.value;
+            updateEnvironmentMap();
+        });
+        
+        envIntensitySlider.addEventListener('input', (e) => {
+            const value = parseFloat(e.target.value);
+            envIntensityValue.textContent = e.target.value;
+            scene.environmentIntensity = value;
+        });
+
+        // アニメーションループ
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            controls.update();
+            
+            // オブジェクトを回転させて反射効果を確認
+            sphere.rotation.y += 0.01;
+            box.rotation.x += 0.005;
+            box.rotation.y += 0.007;
+            cone.rotation.y += 0.012;
+            
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
