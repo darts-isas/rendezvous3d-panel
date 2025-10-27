@@ -83,4 +83,4 @@
 ## ライセンス
 GNU Lesser General Public License v3.0 の下で提供されています。
 
-著作者: ISAS/JAXA and [NAKAHIRA, Satoshi](https://orcid.org/0000-0001-9307-046X) (© 2025)。
+著作者: ISAS/JAXA and [NAKAHIRA, Satoshi](https://orcid.org/0000-0001-9307-046X), 尾崎めい (© 2025)。
