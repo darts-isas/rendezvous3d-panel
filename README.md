@@ -83,4 +83,4 @@ Because this calculation runs immediately after camera movement, objects retain 
 ## License
 Provided under the GNU Lesser General Public License v3.0.
 
-Author: ISAS/JAXA and [NAKAHIRA, Satoshi](https://orcid.org/0000-0001-9307-046X) (© 2025).
+Author: ISAS/JAXA, [NAKAHIRA, Satoshi](https://orcid.org/0000-0001-9307-046X) and OZAKI, Mei (© 2025).
