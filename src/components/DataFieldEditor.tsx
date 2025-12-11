@@ -1,5 +1,5 @@
 import React from 'react';
-import { Field, Input, RadioButtonGroup, Select } from '@grafana/ui';
+import { Field, Input, RadioButtonGroup, Combobox } from '@grafana/ui';
 import { DataField } from '../types';
 import { PanelData } from '@grafana/data';
 import { getFieldOptions } from './utils/CommonHelpers';
@@ -59,16 +59,13 @@ export const DataFieldEditor: React.FC<DataFieldEditorProps> = ({
       
       <Field label={`${label} Value`}>
         {value.sourceType === 'field' && fieldOptions.length > 0 ? (
-          <Select
+          <Combobox
             options={fieldOptions}
             value={fieldOptions.find(option => option.value === value.value)}
             onChange={handleFieldSelect}
             placeholder="Select data field"
             isClearable
-            allowCustomValue
-            onCreateOption={(inputValue) => {
-              handleValueChange(inputValue);
-            }}
+            createCustomValue
           />
         ) : (
           <Input
@@ -88,7 +85,7 @@ export const DataFieldEditor: React.FC<DataFieldEditorProps> = ({
       {value.sourceType === 'field' && fieldOptions.length > 0 && (
         <Field label="Field format">
           <div style={{ fontSize: '12px', color: '#888', marginTop: '4px' }}>
-            <div>Use "dataSourceName.fieldName" format for specific data source, or just "fieldName" for all data sources.</div>
+            <div>Use &quot;dataSourceName.fieldName&quot; format for specific data source, or just &quot;fieldName&quot; for all data sources.</div>
           </div>
         </Field>
       )}

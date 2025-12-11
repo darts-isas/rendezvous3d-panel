@@ -1,0 +1,186 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "datasource",
+        "uid": "grafana"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 13,
+        "w": 11,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "ambientLightIntensity": 0.3,
+        "backgroundColor": "#000000",
+        "camera": {
+          "axisTrigger": {
+            "posX": 0,
+            "posY": 100,
+            "posZ": 0,
+            "preset": "+Y",
+            "timestamp": 1765434698037
+          },
+          "enableControls": "on",
+          "posX": {
+            "sourceType": "const",
+            "value": "0"
+          },
+          "posY": {
+            "sourceType": "const",
+            "value": "99.99999999994999"
+          },
+          "posZ": {
+            "sourceType": "const",
+            "value": "0.00010000444493031752"
+          },
+          "showPositionAndDistance": "on"
+        },
+        "directionalLightIntensity": 0.4,
+        "environmentMapIntensity": 0.6,
+        "objects": [
+          {
+            "autoRadius": "on",
+            "autoScaleFactor": 1,
+            "color": "#ff0000",
+            "id": "1765434630412",
+            "name": "sphere_1765434630412",
+            "posX": {
+              "sourceType": "field",
+              "value": "A.A-series"
+            },
+            "posY": {
+              "sourceType": "field",
+              "value": "B.B-series"
+            },
+            "posZ": {
+              "sourceType": "field",
+              "value": "C.C-series"
+            },
+            "radius": 1,
+            "type": "sphere",
+            "visible": true
+          },
+          {
+            "autoScale": "on",
+            "autoScaleFactor": 1,
+            "id": "1765436225253",
+            "name": "3dmodel_1765436225253",
+            "posX": {
+              "sourceType": "const",
+              "value": "0"
+            },
+            "posY": {
+              "sourceType": "const",
+              "value": "0"
+            },
+            "posZ": {
+              "sourceType": "const",
+              "value": "0"
+            },
+            "quatW": {
+              "sourceType": "const",
+              "value": "1"
+            },
+            "quatX": {
+              "sourceType": "const",
+              "value": "0"
+            },
+            "quatY": {
+              "sourceType": "const",
+              "value": "0"
+            },
+            "quatZ": {
+              "sourceType": "const",
+              "value": "0"
+            },
+            "scale": 1,
+            "type": "3dmodel",
+            "unit": "km",
+            "url": "https://data.darts.isas.jaxa.jp/pub/.assets/models/slim_3Dmodel_transformed.glb",
+            "visible": true
+          }
+        ],
+        "showAxis": "on",
+        "targetObjectId": "origin",
+        "viewAngleScaling": {
+          "maxSize": 14720000000,
+          "minSize": 0.1,
+          "targetAngularSize": 0.05
+        }
+      },
+      "pluginVersion": "1.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "grafana"
+          },
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "grafana"
+          },
+          "hide": false,
+          "queryType": "randomWalk",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "datasource",
+            "uid": "grafana"
+          },
+          "hide": false,
+          "queryType": "randomWalk",
+          "refId": "C"
+        }
+      ],
+      "title": "New panel",
+      "type": "dartsisas-rendezvous3d-panel"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 41,
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "UTC",
+  "title": "Provisioned Dashboard",
+  "uid": "1738f625-ec98-45e7-859f-67cc2b6ca786",
+  "version": 1
+}

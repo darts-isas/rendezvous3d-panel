@@ -257,7 +257,7 @@ export class DataFieldProcessor {
   }
 
   private getTextFieldFromDataSource(field: any, defaultValue: string): string[] {
-    if (!this.data?.series) return [defaultValue];
+    if (!this.data?.series) {return [defaultValue];}
     
     // Parse field value format: [DataSourceName]{FieldName} or DataSourceName.FieldName or just FieldName
     let targetSeriesName: string | null = null;
@@ -287,7 +287,7 @@ export class DataFieldProcessor {
       const targetField = series.fields.find(f => f.name === targetFieldName);
       if (targetField && targetField.values) {
         // Convert all values to strings
-        const rawValues = targetField.values.toArray();
+        const rawValues = Array.from(targetField.values);
         const result = rawValues.map((val) => {
           return String(val);
         });
@@ -414,7 +414,7 @@ export class CameraController {
   }
 
   updateCameraPosition(targetObjectId: string, objects: Shape[], axis?: string, direction?: string, cameraSettings?: any) {
-    if (!this.camera || !this.controls) return;
+    if (!this.camera || !this.controls) {return;}
 
     // Use direct X, Y, Z coordinates
     this.setDirectCameraPosition(cameraSettings, targetObjectId);

@@ -2,7 +2,7 @@ import React from 'react';
 import { StandardEditorProps } from '@grafana/data';
 import { 
   Input, 
-  VerticalGroup,
+  Stack,
   InlineField
 } from '@grafana/ui';
 import { ViewAngleScalingSettings } from '../types';
@@ -23,7 +23,7 @@ const ViewAngleScalingEditor: React.FC<ViewAngleScalingEditorProps> = ({ value, 
   };
 
   return (
-    <VerticalGroup spacing="sm">
+    <Stack direction="column" gap={1}>
       <InlineField 
         label="Target Angular Size" 
         labelWidth={20}
@@ -60,12 +60,12 @@ const ViewAngleScalingEditor: React.FC<ViewAngleScalingEditorProps> = ({ value, 
         <Input
           type="number"
           width={20}
-          step="0.5"
+          step="1000"
           value={settings.maxSize}
           onChange={(e) => updateSettings({ maxSize: parseFloat(e.currentTarget.value) || 14720000000.0 })}
         />
       </InlineField>
-    </VerticalGroup>
+    </Stack>
   );
 };
 

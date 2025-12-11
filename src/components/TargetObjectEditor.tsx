@@ -1,13 +1,13 @@
 import React from 'react';
-import { Select } from '@grafana/ui';
-import { StandardEditorProps, SelectableValue } from '@grafana/data';
+import { Combobox } from '@grafana/ui';
+import { StandardEditorProps } from '@grafana/data';
 import { SimpleOptions } from '../types';
 
 interface TargetObjectEditorProps extends StandardEditorProps<string, any, SimpleOptions> {}
 
 export const TargetObjectEditor: React.FC<TargetObjectEditorProps> = ({ value, onChange, context }) => {
   // オプションリストを構築
-  const options: SelectableValue<string>[] = [
+  const options: Array<{ label: string; value: string }> = [
     { value: 'origin', label: 'Origin (0,0,0)' }
   ];
 
@@ -27,10 +27,10 @@ export const TargetObjectEditor: React.FC<TargetObjectEditorProps> = ({ value, o
   const currentValue = value || 'origin';
   
   // 現在の値に対応するオプションを見つける
-  const selectedOption = options.find(option => option.value === currentValue) || options[0];
+  const selectedOption = options.find(option => option.value === currentValue) || (options.length > 0 ? options[0] : undefined);
 
   return (
-    <Select
+    <Combobox
       value={selectedOption}
       options={options}
       onChange={(selectedOption) => {

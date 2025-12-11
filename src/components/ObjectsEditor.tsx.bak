@@ -9,6 +9,7 @@ import {
   IconButton,
   Stack,
   InlineField,
+  InlineFieldRow,
   RadioButtonGroup
 } from '@grafana/ui';
 import { Shape, ShapeType, DataField } from '../types';
@@ -95,18 +96,7 @@ const ObjectsEditor: React.FC<ObjectsEditorProps> = ({ value = [], onChange, con
   );
 
   // contextからPanelDataを取得（DataFieldEditorで使用）
-  // context.data は DataFrame[] 型なので、PanelData 型に合わせるために変換
-  const panelData = context?.data ? { 
-    series: context.data,
-    state: 'Done',
-    timeRange: (context as any).timeRange || {} as any
-  } as any : undefined;
-
-  const updateObject = (index: number, updatedShape: Shape) => {
-    const newObjects = [...value];
-    newObjects[index] = updatedShape;
-    onChange(newObjects);
-  };
+  const panelData = context?.data ? { series: context.data } as any : undefined;
 
   const renderShapeSpecificFields = (shape: Shape, index: number) => {
     const updateShape = (updatedShape: Shape) => updateObject(index, updatedShape);
@@ -189,11 +179,11 @@ const ObjectsEditor: React.FC<ObjectsEditorProps> = ({ value = [], onChange, con
             <InlineField label="Line Direction" labelWidth={16}>
               <Combobox
                 width={20}
+                value={shape.lineDirection || 'normal'}
                 options={[
                   { label: 'Normal (Right-Up)', value: 'normal' },
                   { label: 'Inverted (Left-Down)', value: 'inverted' }
                 ]}
-                value={shape.lineDirection || 'normal'}
                 onChange={(option) => updateShape({ ...shape, lineDirection: option.value as 'normal' | 'inverted' })}
               />
             </InlineField>
@@ -274,13 +264,11 @@ const ObjectsEditor: React.FC<ObjectsEditorProps> = ({ value = [], onChange, con
           </Stack>
         );
       
-      case '3dmodel': {
+      case '3dmodel':
         // 既存のオブジェクトで unit プロパティが undefined の場合、デフォルト値を設定
         const modelShape = shape.unit === undefined ? { ...shape, unit: 'km' as const } : shape;
         if (shape.unit === undefined) {
-          // Note: This might cause a render loop if not handled carefully, but for now we'll leave it as is
-          // Ideally this should be handled in a useEffect or migration script
-          setTimeout(() => updateShape(modelShape), 0);
+          updateShape(modelShape);
         }
         
         return (
@@ -400,7 +388,6 @@ const ObjectsEditor: React.FC<ObjectsEditorProps> = ({ value = [], onChange, con
             )}
           </Stack>
         );
-      }
       
       default:
         return null;
@@ -414,6 +401,12 @@ const ObjectsEditor: React.FC<ObjectsEditorProps> = ({ value = [], onChange, con
     onChange(newObjects);
     // 新しく追加されたオブジェクトを自動選択
     setSelectedObjectIndex(newObjects.length - 1);
+  };
+
+  const updateObject = (index: number, updatedShape: Shape) => {
+    const newObjects = [...value];
+    newObjects[index] = updatedShape;
+    onChange(newObjects);
   };
 
   const deleteObject = (index: number) => {
@@ -444,13 +437,13 @@ const ObjectsEditor: React.FC<ObjectsEditorProps> = ({ value = [], onChange, con
           <Stack direction="row" gap={1} alignItems="center">
             <Combobox
               width={20}
+              value={selectedType}
               options={[
                 { label: 'Sphere', value: 'sphere' },
                 { label: 'Annotation', value: 'annotation' },
                 { label: 'Polyline', value: 'polyline' },
                 { label: '3D Model', value: '3dmodel' }
               ]}
-              value={selectedType}
               onChange={(option) => setSelectedType(option.value as ShapeType)}
             />
             <Button onClick={addObject} icon="plus">

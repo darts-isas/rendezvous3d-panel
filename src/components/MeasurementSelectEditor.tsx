@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StandardEditorProps } from '@grafana/data';
-import { Select } from '@grafana/ui';
+import { Combobox } from '@grafana/ui';
 
 interface MeasurementSelectEditorProps extends StandardEditorProps<string> {
   context: any;
@@ -8,7 +8,7 @@ interface MeasurementSelectEditorProps extends StandardEditorProps<string> {
 
 // Helper function to extract measurement name from series name
 const extractMeasurementName = (seriesName: string | null | undefined): string => {
-  if (!seriesName) return '';
+  if (!seriesName) {return '';}
   
   try {
     const parts = seriesName.split(',');
@@ -76,27 +76,20 @@ export const MeasurementSelectEditor = ({ value, context, onChange, item }: Meas
   }, [context, item.settings?.defaultValue, value]);
 
   return (
-    <Select
+    <Combobox
       options={options}
       value={options.find(option => option.value === value) || null}
       onChange={(selectedOption) => {
-        onChange(selectedOption?.value || '');
-      }}
-      allowCustomValue
-      placeholder="Measurement Name"
-      onCreateOption={(customValue) => {
-        // カスタム値が有効な場合のみ追加
-        if (customValue && customValue.trim() !== '') {
-          const newOption = { label: customValue, value: customValue };
-          setOptions([...options, newOption]);
-          onChange(customValue);
-        } else {
-          onChange('');
+        const newValue = selectedOption?.value || '';
+        if (newValue && !options.some(o => o.value === newValue)) {
+          setOptions([...options, { label: newValue, value: newValue }]);
         }
+        onChange(newValue);
       }}
+      placeholder="Measurement Name"
+      createCustomValue
       isClearable
       invalid={false} 
-      noOptionsMessage={ "No measurements found" }
     />
   );
 };

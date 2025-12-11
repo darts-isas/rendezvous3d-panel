@@ -15,9 +15,9 @@ export class EnvironmentMapGenerator {
   public topColor: THREE.Color = new THREE.Color(0xABC0C5);      // 青白色をさらに中間色に寄せた色
   public bottomColor: THREE.Color = new THREE.Color(0xC8B6A3);   // 暖色をさらに中間色に寄せた色
   public horizonColor: THREE.Color = new THREE.Color(0xB8B8B8);  // 中間色（ニュートラルグレー）
-  public intensityFactor: number = 0.7; // グローバル強度調整
+  public intensityFactor = 0.7; // グローバル強度調整
 
-  constructor(renderer: THREE.WebGLRenderer, resolution: number = 256) {
+  constructor(renderer: THREE.WebGLRenderer, resolution = 256) {
     this.renderer = renderer;
     
     // キューブレンダーターゲットの作成
@@ -173,7 +173,7 @@ export class EnvironmentMapGenerator {
     }));
     
     // キューブの各面を作成
-    const positions: [number, number, number][] = [
+    const positions: Array<[number, number, number]> = [
       [1, 0, 0],   // +X
       [-1, 0, 0],  // -X
       [0, 1, 0],   // +Y
@@ -182,7 +182,7 @@ export class EnvironmentMapGenerator {
       [0, 0, -1]   // -Z
     ];
     
-    const rotations: [number, number, number][] = [
+    const rotations: Array<[number, number, number]> = [
       [0, Math.PI / 2, 0],     // +X
       [0, -Math.PI / 2, 0],    // -X
       [-Math.PI / 2, 0, 0],    // +Y
@@ -205,10 +205,10 @@ export class EnvironmentMapGenerator {
    * 環境マップの色を更新
    */
   updateColors(topColor?: THREE.Color, bottomColor?: THREE.Color, horizonColor?: THREE.Color, intensityFactor?: number): void {
-    if (topColor) this.topColor = topColor;
-    if (bottomColor) this.bottomColor = bottomColor;
-    if (horizonColor) this.horizonColor = horizonColor;
-    if (intensityFactor !== undefined) this.intensityFactor = intensityFactor;
+    if (topColor) {this.topColor = topColor;}
+    if (bottomColor) {this.bottomColor = bottomColor;}
+    if (horizonColor) {this.horizonColor = horizonColor;}
+    if (intensityFactor !== undefined) {this.intensityFactor = intensityFactor;}
     
     // 全マテリアルのユニフォームを更新
     this.materials.forEach((material, index) => {
@@ -268,17 +268,39 @@ export class EnvironmentMapGenerator {
    * リソースのクリーンアップ
    */
   dispose(): void {
-    this.cubeRenderTarget.dispose();
+    try {
+      if (this.cubeRenderTarget) {
+        this.cubeRenderTarget.dispose();
+      }
+    } catch (e) {
+      console.warn('Error disposing cubeRenderTarget:', e);
+    }
     
     // マテリアルを破棄
-    this.materials.forEach(material => material.dispose());
+    try {
+      if (this.materials && Array.isArray(this.materials)) {
+        this.materials.forEach(material => {
+          if (material) {
+            material.dispose();
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('Error disposing materials:', e);
+    }
     this.materials = [];
     
     // グラデーションシーンの各ジオメトリを破棄
-    this.gradientScene.traverse((object) => {
-      if (object instanceof THREE.Mesh && object.geometry) {
-        object.geometry.dispose();
+    try {
+      if (this.gradientScene) {
+        this.gradientScene.traverse((object) => {
+          if (object instanceof THREE.Mesh && object.geometry) {
+            object.geometry.dispose();
+          }
+        });
       }
-    });
+    } catch (e) {
+      console.warn('Error disposing gradientScene:', e);
+    }
   }
 }

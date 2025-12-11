@@ -484,10 +484,10 @@ export class ThreeSceneObjectManager {
   // Update existing objects with new data
   updateObjects(objects: Shape[]): void {
     objects.forEach((shape) => {
-      if (!shape.visible) return;
+      if (!shape.visible) {return;}
 
       const existingObject = this.objectsRef.current.get(shape.id);
-      if (!existingObject) return;
+      if (!existingObject) {return;}
 
       try {
         if (shape.type === 'sphere') {
@@ -833,23 +833,23 @@ export class ThreeSceneObjectManager {
               if (Array.isArray(child.material)) {
                 child.material.forEach(mat => {
                   // テクスチャも適切に解放
-                  if (mat.map) mat.map.dispose();
-                  if (mat.normalMap) mat.normalMap.dispose();
-                  if (mat.roughnessMap) mat.roughnessMap.dispose();
-                  if (mat.metalnessMap) mat.metalnessMap.dispose();
+                  if (mat.map) {mat.map.dispose();}
+                  if (mat.normalMap) {mat.normalMap.dispose();}
+                  if (mat.roughnessMap) {mat.roughnessMap.dispose();}
+                  if (mat.metalnessMap) {mat.metalnessMap.dispose();}
                   mat.dispose();
                 });
               } else {
                 // テクスチャも適切に解放
-                if (child.material.map) child.material.map.dispose();
-                if (child.material.normalMap) child.material.normalMap.dispose();
-                if (child.material.roughnessMap) child.material.roughnessMap.dispose();
-                if (child.material.metalnessMap) child.material.metalnessMap.dispose();
+                if (child.material.map) {child.material.map.dispose();}
+                if (child.material.normalMap) {child.material.normalMap.dispose();}
+                if (child.material.roughnessMap) {child.material.roughnessMap.dispose();}
+                if (child.material.metalnessMap) {child.material.metalnessMap.dispose();}
                 child.material.dispose();
               }
             }
           } else if (child instanceof THREE.Line) {
-            if (child.geometry) child.geometry.dispose();
+            if (child.geometry) {child.geometry.dispose();}
             if (child.material && !Array.isArray(child.material)) {
               child.material.dispose();
             }
@@ -914,7 +914,7 @@ export class ThreeSceneObjectManager {
 
   // アノテーションの距離スケーリングを更新
   private updateAnnotationDistanceScaling(group: THREE.Group): void {
-    if (!this.camera) return;
+    if (!this.camera) {return;}
 
     // アノテーションの基準位置を取得（最初のスプライトまたは線の位置）
     let basePosition: THREE.Vector3 | null = null;
@@ -940,7 +940,7 @@ export class ThreeSceneObjectManager {
       }
     }
 
-    if (!basePosition) return;
+    if (!basePosition) {return;}
 
     const distance = this.camera.position.distanceTo(basePosition);
     
@@ -1110,9 +1110,9 @@ export class ThreeSceneObjectManager {
       hex = hex.split('').map(char => char + char).join('');
     }
     
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
     
     return { r, g, b };
   }

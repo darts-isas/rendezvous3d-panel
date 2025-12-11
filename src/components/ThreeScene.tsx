@@ -101,102 +101,7 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
     };
   }, [targetObjectId]);
 
-  // Initialize Three.js scene
-  const initializeScene = useCallback(() => {
-    if (!mountRef.current || isInitialized) {
-      return;
-    }
 
-    // Prevent multiple initializations
-    if (rendererRef.current) {
-      return;
-    }
-
-    try {
-      // Scene setup
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color(backgroundColor);
-      sceneRef.current = scene;
-
-      // Camera setup
-      const camera = new THREE.PerspectiveCamera(75, width / height, 0.001, 15000000000);
-      camera.position.set(50, 50, 50);
-      camera.lookAt(0, 0, 0);  // Ensure camera looks at origin
-      cameraRef.current = camera;
-
-      // Renderer setup
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
-      renderer.setSize(width, height);
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      
-      // トーンマッピングを調整
-      renderer.toneMapping = THREE.NoToneMapping;
-      renderer.toneMappingExposure = 1.0;
-      
-      rendererRef.current = renderer;
-
-      // Controls setup
-      const controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-      controls.enabled = enableCameraControls;
-      controls.target.set(0, 0, 0);  // Set target to origin
-      controls.update();  // Apply the target setting
-      controlsRef.current = controls;
-
-      // 並行光源の設定
-      const directionalLight = new THREE.DirectionalLight(0xffffff, directionalLightIntensity);
-      directionalLight.position.set(100, 100, 50);
-      directionalLight.castShadow = true;
-      directionalLight.shadow.mapSize.width = 2048;
-      directionalLight.shadow.mapSize.height = 2048;
-      scene.add(directionalLight);
-      directionalLightRef.current = directionalLight;
-
-      // アンビエント光の設定
-      const ambientLight = new THREE.AmbientLight(0xffffff, ambientLightIntensity);
-      scene.add(ambientLight);
-      ambientLightRef.current = ambientLight;
-
-      // 環境マップの生成と設定
-      const envMapGen = new EnvironmentMapGenerator(renderer, 256);
-      setEnvironmentMapGenerator(envMapGen);
-      
-      // 環境マップを生成してシーンに適用（強度が0でなければ）
-      if (environmentMapIntensity > 0) {
-        const environmentMap = envMapGen.generateEnvironmentMap();
-        scene.environment = environmentMap;
-        scene.environmentIntensity = environmentMapIntensity; // プロパティから設定
-      }
-
-      // Add coordinate axes if enabled (will be managed by separate useEffect)
-      // Initial axis setup is handled by the axis visibility useEffect
-
-      // Initialize helper classes
-      const objManager = new ThreeSceneObjectManager(scene, dataProcessor, objectsRef, viewAngleScaling);
-      objManager.setCamera(camera); // カメラ参照を設定
-      setObjectManager(objManager);
-
-      const camController = new CameraController(camera, controls, boundsCalculator, objectsRef, dataProcessor);
-      setCameraController(camController);
-
-      // Add renderer to DOM
-      mountRef.current.appendChild(renderer.domElement);
-
-      // Force initial render
-      renderer.render(scene, camera);
-
-      setIsInitialized(true);
-    } catch (error) {
-      console.error('Error during scene initialization:', error);
-    }
-  }, [
-    width,
-    height,
-    isInitialized,
-    environmentMapIntensity
-  ]);
 
   // Animation loop
   const animate = useCallback(() => {
@@ -233,7 +138,7 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
 
   // Update objects based on shape configuration
   const updateObjects = useCallback(async () => {
-    if (!sceneRef.current || !objectManager) return;
+    if (!sceneRef.current || !objectManager) {return;}
 
     // Get current object IDs
     const currentObjectIds = new Set(objectsRef.current.keys());
@@ -339,14 +244,97 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
 
   // Initialize scene on mount
   useEffect(() => {
-    initializeScene();
+    if (!mountRef.current || isInitialized || rendererRef.current) {
+      return;
+    }
+
+    let objManager: ThreeSceneObjectManager | null = null;
+    let envMapGen: EnvironmentMapGenerator | null = null;
+
+    try {
+      // Scene setup
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(backgroundColor);
+      sceneRef.current = scene;
+
+      // Camera setup
+      const camera = new THREE.PerspectiveCamera(75, width / height, 0.001, 15000000000);
+      camera.position.set(50, 50, 50);
+      camera.lookAt(0, 0, 0);  // Ensure camera looks at origin
+      cameraRef.current = camera;
+
+      // Renderer setup
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(width, height);
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      
+      // トーンマッピングを調整
+      renderer.toneMapping = THREE.NoToneMapping;
+      renderer.toneMappingExposure = 1.0;
+      
+      rendererRef.current = renderer;
+
+      // Controls setup
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.enabled = enableCameraControls;
+      controls.target.set(0, 0, 0);  // Set target to origin
+      controls.update();  // Apply the target setting
+      controlsRef.current = controls;
+
+      // 並行光源の設定
+      const directionalLight = new THREE.DirectionalLight(0xffffff, directionalLightIntensity);
+      directionalLight.position.set(100, 100, 50);
+      directionalLight.castShadow = true;
+      directionalLight.shadow.mapSize.width = 2048;
+      directionalLight.shadow.mapSize.height = 2048;
+      scene.add(directionalLight);
+      directionalLightRef.current = directionalLight;
+
+      // アンビエント光の設定
+      const ambientLight = new THREE.AmbientLight(0xffffff, ambientLightIntensity);
+      scene.add(ambientLight);
+      ambientLightRef.current = ambientLight;
+
+      // 環境マップの生成と設定
+      envMapGen = new EnvironmentMapGenerator(renderer, 256);
+      setEnvironmentMapGenerator(envMapGen);
+      
+      // 環境マップを生成してシーンに適用（強度が0でなければ）
+      if (environmentMapIntensity > 0) {
+        const environmentMap = envMapGen.generateEnvironmentMap();
+        scene.environment = environmentMap;
+        scene.environmentIntensity = environmentMapIntensity; // プロパティから設定
+      }
+
+      // Initialize helper classes
+      objManager = new ThreeSceneObjectManager(scene, dataProcessor, objectsRef, viewAngleScaling);
+      objManager.setCamera(camera); // カメラ参照を設定
+      setObjectManager(objManager);
+
+      const camController = new CameraController(camera, controls, boundsCalculator, objectsRef, dataProcessor);
+      setCameraController(camController);
+
+      // Add renderer to DOM
+      mountRef.current.appendChild(renderer.domElement);
+
+      // Force initial render
+      renderer.render(scene, camera);
+
+      setIsInitialized(true);
+    } catch (error) {
+      console.error('Error during scene initialization:', error);
+    }
     
     // Store current refs for cleanup
-    const currentRenderer = rendererRef.current;
     const currentMount = mountRef.current;
-    const currentAnimation = animationIdRef.current;
     
     return () => {
+      const currentRenderer = rendererRef.current;
+      const currentAnimation = animationIdRef.current;
+      
       if (currentAnimation) {
         cancelAnimationFrame(currentAnimation);
       }
@@ -357,19 +345,19 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
           console.warn('Error removing canvas from DOM:', error);
         }
       }
+      // EnvironmentMapGeneratorのクリーンアップ
+      if (envMapGen) {
+        envMapGen.dispose();
+      }
+      // ObjectManagerのクリーンアップ
+      if (objManager) {
+        objManager.dispose();
+      }
       if (currentRenderer) {
         currentRenderer.dispose();
       }
-      // ObjectManagerのクリーンアップ
-      if (objectManager) {
-        objectManager.dispose();
-      }
-      // EnvironmentMapGeneratorのクリーンアップ
-      if (environmentMapGenerator) {
-        environmentMapGenerator.dispose();
-      }
     };
-  }, []); // Empty dependency array to run only once
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Start animation loop
   useEffect(() => {
@@ -415,7 +403,7 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
 
   // Update axis visibility
   useEffect(() => {
-    if (!sceneRef.current || !isInitialized) return;
+    if (!sceneRef.current || !isInitialized) {return;}
     
     // Remove existing axes
     const axesToRemove = sceneRef.current.children.filter(child => 
@@ -442,42 +430,41 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
     updateLighting();
   }, [updateLighting]);
 
+  const objectsHash = JSON.stringify(objects.map(obj => ({
+    id: obj.id,
+    type: obj.type,
+    visible: obj.visible,
+    // type別の重要な属性
+    ...(obj.type === 'sphere' ? {
+      color: obj.color,
+      autoRadius: obj.autoRadius,
+      radius: obj.radius,
+      autoScaleFactor: obj.autoScaleFactor
+    } : {}),
+    ...(obj.type === 'annotation' ? {
+      textSize: obj.textSize,
+      textColor: obj.textColor
+    } : {}),
+    ...(obj.type === 'polyline' ? {
+      strokeSize: obj.strokeSize,
+      strokeColor: obj.strokeColor,
+      closePath: obj.closePath,
+      smoothCurve: obj.smoothCurve
+    } : {}),
+    ...(obj.type === '3dmodel' ? {
+      url: obj.url,
+      autoScale: obj.autoScale,
+      scale: obj.scale,
+      autoScaleFactor: obj.autoScaleFactor
+    } : {})
+  })));
+
   // Update objects when configuration changes
   useEffect(() => {
     if (isInitialized && objectManager) {
       updateObjects();
     }
-  }, [isInitialized, updateObjects, objectManager, 
-      // 追加：オブジェクトの重要な属性の変更も検出
-      JSON.stringify(objects.map(obj => ({
-        id: obj.id,
-        type: obj.type,
-        visible: obj.visible,
-        // type別の重要な属性
-        ...(obj.type === 'sphere' ? {
-          color: obj.color,
-          autoRadius: obj.autoRadius,
-          radius: obj.radius,
-          autoScaleFactor: obj.autoScaleFactor
-        } : {}),
-        ...(obj.type === 'annotation' ? {
-          textSize: obj.textSize,
-          textColor: obj.textColor
-        } : {}),
-        ...(obj.type === 'polyline' ? {
-          strokeSize: obj.strokeSize,
-          strokeColor: obj.strokeColor,
-          closePath: obj.closePath,
-          smoothCurve: obj.smoothCurve
-        } : {}),
-        ...(obj.type === '3dmodel' ? {
-          url: obj.url,
-          autoScale: obj.autoScale,
-          scale: obj.scale,
-          autoScaleFactor: obj.autoScaleFactor
-        } : {})
-      })))
-  ]);
+  }, [isInitialized, updateObjects, objectManager, objectsHash]);
 
   // Update objects when data changes (time range changes, reload, etc.)
   useEffect(() => {

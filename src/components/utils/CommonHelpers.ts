@@ -1,4 +1,5 @@
 import { css } from '@emotion/css';
+import { FieldType } from '@grafana/data';
 
 // Common styles for form components
 export const getCommonStyles = () => ({
@@ -45,7 +46,7 @@ export const getCommonStyles = () => ({
 });
 
 // Common validation helpers
-export const validateField = (value: string, required: boolean = false): boolean => {
+export const validateField = (value: string, required = false): boolean => {
   if (required && (!value || value.trim() === '')) {
     return false;
   }
@@ -60,13 +61,14 @@ export const createDefaultDataField = () => ({
 
 // Helper to get available field options for dropdowns
 export const getFieldOptions = (data?: any) => {
-  if (!data || !data.series) return [];
+  if (!data || !data.series) {return [];}
   
   const fieldOptions: Array<{ label: string; value: string }> = [];
   
   data.series.forEach((series: any, seriesIndex: number) => {
     series.fields.forEach((field: any) => {
-      if (field.name) {
+      // 数値型のフィールドのみをリストに追加（時刻と文字列を除外）
+      if (field.name && field.type === FieldType.number) {
         const dataSourceName = series.name || series.refId || `Query-${seriesIndex + 1}`;
         const fieldValue = `${dataSourceName}.${field.name}`;
         fieldOptions.push({

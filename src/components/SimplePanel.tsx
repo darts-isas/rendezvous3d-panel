@@ -89,7 +89,7 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, fie
         }}>
           <p>No data or objects configured. Please:</p>
           <ul style={{ textAlign: 'left', display: 'inline-block' }}>
-            <li>Add objects in the "Objects" tab in panel settings, or</li>
+            <li>Add objects in the &quot;Objects&quot; tab in panel settings, or</li>
             <li>Connect a data source to visualize data</li>
           </ul>
           <p style={{ fontSize: '12px', marginTop: '10px' }}>
@@ -110,7 +110,7 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, fie
           color: theme.colors.text.secondary 
         }}>
           <p>Data source connected ({data.series.length} series available)</p>
-          <p>Please add objects in the "Objects" tab to visualize the data.</p>
+          <p>Please add objects in the &quot;Objects&quot; tab to visualize the data.</p>
           <p style={{ fontSize: '12px', marginTop: '10px' }}>
             Check browser console for detailed field information.
           </p>

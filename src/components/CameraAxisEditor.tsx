@@ -1,6 +1,6 @@
 import React from 'react';
 import { StandardEditorProps } from '@grafana/data';
-import { Button, HorizontalGroup } from '@grafana/ui';
+import { Button, Stack } from '@grafana/ui';
 import { SimpleOptions } from '../types';
 
 interface CameraAxisEditorProps extends StandardEditorProps<any, any, SimpleOptions> {}
@@ -143,7 +143,7 @@ export const CameraAxisEditor: React.FC<CameraAxisEditorProps> = ({ context, onC
       <div style={{ marginBottom: '8px', fontSize: '12px', color: '#666' }}>
         Click to automatically set camera position:
       </div>
-      <HorizontalGroup spacing="xs">
+      <Stack direction="row" gap={0.5}>
         <Button 
           size="sm" 
           variant="secondary" 
@@ -186,7 +186,7 @@ export const CameraAxisEditor: React.FC<CameraAxisEditorProps> = ({ context, onC
         >
           -Z
         </Button>
-      </HorizontalGroup>
+      </Stack>
       
       <div style={{ marginTop: '12px', marginBottom: '8px', fontSize: '12px', color: '#666' }}>
         Set current camera position to input fields:
