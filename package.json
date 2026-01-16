@@ -9,7 +9,7 @@
     "test:ci": "jest --passWithNoTests --maxWorkers 4",
     "typecheck": "tsc --noEmit",
     "lint": "eslint --cache --ignore-path ./.gitignore --ext .js,.jsx,.ts,.tsx .",
-    "lint:fix": "npm run lint -- --fix && prettier --write --list-different .",
+    "lint:fix": "pnpm run lint -- --fix && prettier --write --list-different .",
     "e2e": "playwright test",
     "server": "docker compose up --build",
     "sign": "npx --yes @grafana/sign-plugin@latest"
@@ -30,6 +30,8 @@
     "@testing-library/react": "14.0.0",
     "@types/jest": "^29.5.0",
     "@types/node": "^20.8.7",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
     "@types/testing-library__jest-dom": "5.14.8",
     "@typescript-eslint/eslint-plugin": "^6.18.0",
     "@typescript-eslint/parser": "^6.18.0",
@@ -79,5 +81,12 @@
     "three": "^0.176.0",
     "three-stdlib": "^2.36.0"
   },
-  "packageManager": "npm@10.8.2"
+  "packageManager": "pnpm@9.7.1",
+  "pnpm": {
+    "overrides": {
+      "@remix-run/router": ">=1.23.2",
+      "react-router": ">=6.30.2",
+      "diff": ">=8.0.3"
+    }
+  }
 }
