@@ -1,1 +1,68 @@
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 81.9 71.52"><defs><style>.cls-1{fill:#84aff1;}.cls-2{fill:#3865ab;}.cls-3{fill:url(#linear-gradient);}</style><linearGradient id="linear-gradient" x1="42.95" y1="16.88" x2="81.9" y2="16.88" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#f2cc0c"/><stop offset="1" stop-color="#ff9830"/></linearGradient></defs><g id="Layer_2" data-name="Layer 2"><g id="Layer_1-2" data-name="Layer 1"><path class="cls-1" d="M55.46,62.43A2,2,0,0,1,54.07,59l4.72-4.54a2,2,0,0,1,2.2-.39l3.65,1.63,3.68-3.64a2,2,0,1,1,2.81,2.84l-4.64,4.6a2,2,0,0,1-2.22.41L60.6,58.26l-3.76,3.61A2,2,0,0,1,55.46,62.43Z"/><path class="cls-2" d="M37,0H2A2,2,0,0,0,0,2V31.76a2,2,0,0,0,2,2H37a2,2,0,0,0,2-2V2A2,2,0,0,0,37,0ZM4,29.76V8.84H35V29.76Z"/><path class="cls-3" d="M79.9,0H45a2,2,0,0,0-2,2V31.76a2,2,0,0,0,2,2h35a2,2,0,0,0,2-2V2A2,2,0,0,0,79.9,0ZM47,29.76V8.84h31V29.76Z"/><path class="cls-2" d="M37,37.76H2a2,2,0,0,0-2,2V69.52a2,2,0,0,0,2,2H37a2,2,0,0,0,2-2V39.76A2,2,0,0,0,37,37.76ZM4,67.52V46.6H35V67.52Z"/><path class="cls-2" d="M79.9,37.76H45a2,2,0,0,0-2,2V69.52a2,2,0,0,0,2,2h35a2,2,0,0,0,2-2V39.76A2,2,0,0,0,79.9,37.76ZM47,67.52V46.6h31V67.52Z"/><rect class="cls-1" x="10.48" y="56.95" width="4" height="5.79"/><rect class="cls-1" x="17.43" y="53.95" width="4" height="8.79"/><rect class="cls-1" x="24.47" y="50.95" width="4" height="11.79"/><path class="cls-1" d="M19.47,25.8a6.93,6.93,0,1,1,6.93-6.92A6.93,6.93,0,0,1,19.47,25.8Zm0-9.85a2.93,2.93,0,1,0,2.93,2.93A2.93,2.93,0,0,0,19.47,16Z"/></g></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <style>
+      .spacecraft { fill: #3865ab; }
+      .spacecraft-accent { fill: #84aff1; }
+      .asteroid { fill: #8b7355; }
+      .asteroid-dark { fill: #5a4a3a; }
+      .trajectory { fill: none; stroke: #84aff1; stroke-width: 1.5; stroke-dasharray: 4,3; opacity: 0.7; }
+      .trajectory-merged { fill: none; stroke: #f2cc0c; stroke-width: 2; stroke-dasharray: 5,3; }
+      .glow { fill: #ff9830; opacity: 0.6; }
+    </style>
+  </defs>
+
+  <!-- Background stars -->
+  <circle cx="10" cy="20" r="1" fill="#fff" opacity="0.5"/>
+  <circle cx="85" cy="15" r="0.8" fill="#fff" opacity="0.4"/>
+  <circle cx="92" cy="45" r="1" fill="#fff" opacity="0.5"/>
+  <circle cx="15" cy="75" r="0.8" fill="#fff" opacity="0.4"/>
+  <circle cx="88" cy="80" r="1" fill="#fff" opacity="0.5"/>
+
+  <!-- Trajectory from spacecraft (top-left to center-right) -->
+  <path class="trajectory" d="M 8 18 Q 35 30, 55 50"/>
+
+  <!-- Trajectory from asteroid (bottom-left to center-right) -->
+  <path class="trajectory" d="M 12 82 Q 35 70, 55 50"/>
+
+  <!-- Merged trajectory (center to right) -->
+  <path class="trajectory-merged" d="M 55 50 Q 72 50, 95 50"/>
+
+  <!-- Rendezvous point glow -->
+  <circle class="glow" cx="55" cy="50" r="6"/>
+  <circle cx="55" cy="50" r="3" fill="#ff9830" opacity="0.8"/>
+
+  <!-- Spacecraft (top-left, pointing toward center-right) -->
+  <g transform="translate(12, 22) rotate(35)">
+    <!-- Main body -->
+    <polygon class="spacecraft" points="0,4 18,4 22,8 18,12 0,12"/>
+    <!-- Nose cone -->
+    <polygon class="spacecraft-accent" points="18,4 26,8 18,12"/>
+    <!-- Solar panels -->
+    <rect class="spacecraft-accent" x="4" y="0" width="8" height="3" rx="0.5"/>
+    <rect class="spacecraft-accent" x="4" y="13" width="8" height="3" rx="0.5"/>
+    <!-- Engine glow -->
+    <ellipse cx="-2" cy="8" rx="3" ry="2" fill="#84aff1" opacity="0.6"/>
+  </g>
+
+  <!-- Asteroid (bottom-left, irregular rock shape) -->
+  <g transform="translate(8, 72)">
+    <!-- Main asteroid body - irregular polygon for rock appearance -->
+    <polygon class="asteroid" points="6,0 14,2 18,8 16,16 10,18 2,14 0,8 3,3"/>
+    <!-- Surface details/shadows for rocky texture -->
+    <polygon class="asteroid-dark" points="8,4 12,5 14,9 11,12 7,10 6,6"/>
+    <polygon class="asteroid-dark" points="3,8 5,12 4,14 2,11"/>
+    <polygon class="asteroid-dark" points="13,10 15,13 13,15 11,13"/>
+  </g>
+
+  <!-- Small spacecraft silhouette at merge point heading right -->
+  <g transform="translate(52, 46)">
+    <polygon fill="#3865ab" points="0,2 5,2 7,4 5,6 0,6"/>
+    <polygon fill="#84aff1" points="5,2 9,4 5,6"/>
+  </g>
+
+  <!-- Small asteroid at merge point -->
+  <g transform="translate(56, 51)">
+    <polygon fill="#8b7355" points="2,0 5,1 6,3 5,5 3,6 1,5 0,3 1,1"/>
+    <polygon fill="#5a4a3a" points="2,1 4,2 4,4 3,4 2,3"/>
+  </g>
+</svg>
