@@ -1,12 +1,12 @@
 import { PanelPlugin } from '@grafana/data';
-import { SimpleOptions } from './types';
-import { SimplePanel } from './components/SimplePanel';
+import { Rendezvous3DPanelOptions } from './types';
+import { Rendezvous3DPanel } from './components/Rendezvous3DPanel';
 import { ObjectsEditor } from './components/ObjectsEditor';
 import { TargetObjectEditor } from './components/TargetObjectEditor';
 import { CameraAxisEditor } from './components/CameraAxisEditor';
 import ViewAngleScalingEditor from './components/ViewAngleScalingEditor';
 
-export const plugin = new PanelPlugin<SimpleOptions>(SimplePanel).setPanelOptions((builder) => {
+export const plugin = new PanelPlugin<Rendezvous3DPanelOptions>(Rendezvous3DPanel).setPanelOptions((builder) => {
   return builder
     // Basic Settings
     .addRadio({
@@ -117,14 +117,14 @@ export const plugin = new PanelPlugin<SimpleOptions>(SimplePanel).setPanelOption
       name: 'X Position',
       defaultValue: 100,
       category: ['Camera Settings'],
-      showIf: (config: SimpleOptions) => config.camera?.posX?.sourceType === 'const',
+      showIf: (config: Rendezvous3DPanelOptions) => config.camera?.posX?.sourceType === 'const',
     })
     .addTextInput({
       path: 'camera.posX.value',
       name: 'X Position Field Name',
       defaultValue: '',
       category: ['Camera Settings'],
-      showIf: (config: SimpleOptions) => config.camera?.posX?.sourceType === 'field',
+      showIf: (config: Rendezvous3DPanelOptions) => config.camera?.posX?.sourceType === 'field',
     })
     .addRadio({
       path: 'camera.posY.sourceType',
@@ -143,14 +143,14 @@ export const plugin = new PanelPlugin<SimpleOptions>(SimplePanel).setPanelOption
       name: 'Y Position',
       defaultValue: 100,
       category: ['Camera Settings'],
-      showIf: (config: SimpleOptions) => config.camera?.posY?.sourceType === 'const',
+      showIf: (config: Rendezvous3DPanelOptions) => config.camera?.posY?.sourceType === 'const',
     })
     .addTextInput({
       path: 'camera.posY.value',
       name: 'Y Position Field Name',
       defaultValue: '',
       category: ['Camera Settings'],
-      showIf: (config: SimpleOptions) => config.camera?.posY?.sourceType === 'field',
+      showIf: (config: Rendezvous3DPanelOptions) => config.camera?.posY?.sourceType === 'field',
     })
     .addRadio({
       path: 'camera.posZ.sourceType',
@@ -169,14 +169,14 @@ export const plugin = new PanelPlugin<SimpleOptions>(SimplePanel).setPanelOption
       name: 'Z Position',
       defaultValue: 100,
       category: ['Camera Settings'],
-      showIf: (config: SimpleOptions) => config.camera?.posZ?.sourceType === 'const',
+      showIf: (config: Rendezvous3DPanelOptions) => config.camera?.posZ?.sourceType === 'const',
     })
     .addTextInput({
       path: 'camera.posZ.value',
       name: 'Z Position Field Name',
       defaultValue: '',
       category: ['Camera Settings'],
-      showIf: (config: SimpleOptions) => config.camera?.posZ?.sourceType === 'field',
+      showIf: (config: Rendezvous3DPanelOptions) => config.camera?.posZ?.sourceType === 'field',
     })
     .addRadio({
       path: 'camera.enableControls',

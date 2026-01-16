@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
 import { PanelProps } from '@grafana/data';
-import { SimpleOptions } from '../types';
+import { Rendezvous3DPanelOptions } from '../types';
 import { css } from '@emotion/css';
 import { useStyles2, useTheme2 } from '@grafana/ui';
 import { ThreeScene } from './ThreeScene';
 
-interface Props extends PanelProps<SimpleOptions> {}
+interface Props extends PanelProps<Rendezvous3DPanelOptions> {}
 
 const getStyles = () => {
   return {
@@ -27,7 +27,7 @@ const getStyles = () => {
   };
 };
 
-export const SimplePanel: React.FC<Props> = ({ options, data, width, height, fieldConfig, id, onOptionsChange }) => {
+export const Rendezvous3DPanel: React.FC<Props> = ({ options, data, width, height, fieldConfig, id, onOptionsChange }) => {
   const theme = useTheme2();
   const styles = useStyles2(getStyles);
 
@@ -43,7 +43,7 @@ export const SimplePanel: React.FC<Props> = ({ options, data, width, height, fie
         const { posX, posY, posZ } = event.data;
         
         // Update camera options with new preset values
-        const updatedOptions: SimpleOptions = {
+        const updatedOptions: Rendezvous3DPanelOptions = {
           ...options,
           camera: {
             enableControls: 'on',

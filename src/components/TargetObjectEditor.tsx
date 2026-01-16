@@ -1,9 +1,9 @@
 import React from 'react';
 import { Combobox } from '@grafana/ui';
 import { StandardEditorProps } from '@grafana/data';
-import { SimpleOptions } from '../types';
+import { Rendezvous3DPanelOptions } from '../types';
 
-interface TargetObjectEditorProps extends StandardEditorProps<string, any, SimpleOptions> {}
+interface TargetObjectEditorProps extends StandardEditorProps<string, any, Rendezvous3DPanelOptions> {}
 
 export const TargetObjectEditor: React.FC<TargetObjectEditorProps> = ({ value, onChange, context }) => {
   // オプションリストを構築

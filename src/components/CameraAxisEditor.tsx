@@ -1,9 +1,9 @@
 import React from 'react';
 import { StandardEditorProps } from '@grafana/data';
 import { Button, Stack } from '@grafana/ui';
-import { SimpleOptions } from '../types';
+import { Rendezvous3DPanelOptions } from '../types';
 
-interface CameraAxisEditorProps extends StandardEditorProps<any, any, SimpleOptions> {}
+interface CameraAxisEditorProps extends StandardEditorProps<any, any, Rendezvous3DPanelOptions> {}
 
 export const CameraAxisEditor: React.FC<CameraAxisEditorProps> = ({ context, onChange }) => {
   const handleAxisClick = (direction: string, axis: string) => {

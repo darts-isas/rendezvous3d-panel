@@ -103,7 +103,7 @@ export interface ViewAngleScalingSettings {
   maxSize: number; // 最大サイズ（デフォルト: 10.0）
 }
 
-export interface SimpleOptions {
+export interface Rendezvous3DPanelOptions {
   // Basic Settings
   showAxis?: 'on' | 'off';
   backgroundColor?: string;
