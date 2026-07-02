@@ -95,6 +95,20 @@ export interface CameraSettings {
   showPositionAndDistance: 'on' | 'off'; // 位置と距離表示の有効/無効
   // Axis preset trigger (used internally by CameraAxisEditor)
   axisTrigger?: any;
+  // On-canvas button visibility (optional for backward compat with old JSON; default true)
+  showSaveCameraButton?: boolean;
+  showResetCameraButton?: boolean;
+}
+
+export type PointLightDecayMode = 'none' | 'linear' | 'inverseSquare';
+
+export interface PointLightSettings {
+  enabled: 'on' | 'off';
+  intensity: number;
+  decayMode: PointLightDecayMode; // three.js の PointLight.decay = 0 / 1 / 2 に対応
+  posX: DataField;
+  posY: DataField;
+  posZ: DataField;
 }
 
 export interface ViewAngleScalingSettings {
@@ -112,7 +126,8 @@ export interface Rendezvous3DPanelOptions {
   directionalLightIntensity?: number;
   ambientLightIntensity?: number;
   environmentMapIntensity?: number;
-  
+  pointLight?: PointLightSettings;
+
   // Camera Settings
   camera?: CameraSettings;
   targetObjectId?: string; // 注視対象オブジェクトID（Origin含む）

@@ -22,6 +22,8 @@ Switch camera targets to orbit around multiple assets. Scale adjustments let you
 <img src="screenshots/menu1_light.png" alt="Lighting configuration" width="250" />
 - Use `Background Color` to mimic deep space or adapt the palette to your operations environment.
 - Tune `Directional/Ambient/Environment Map` to achieve the desired look for metallic spacecraft and markers.
+- Enable `Point Light` to place a single point light source in the scene, driven by telemetry fields or constants just like object positions. Its light is blocked by the front faces of spheres and 3D models but passes through their back faces, so it can be used to simulate sunlight or another localized source casting shadows across the scene.
+  - `Point Light Decay` controls how intensity falls off with distance: `None` (constant regardless of distance), `Linear` (1/d), or `Inverse Square` (1/d², physically accurate). Because scenes can span from tens of units to well beyond 10^8, pick `None` for a quick, distance-independent light and switch to `Linear`/`Inverse Square` with a correspondingly larger `Point Light Intensity` when physically accurate falloff is needed.
 
 ### 2. View-angle based auto scaling
 <img src="screenshots/menu2_autoscale.png" alt="Auto-scaling configuration" width="250" />
@@ -42,6 +44,11 @@ Because this calculation runs immediately after camera movement, objects retain 
 - Drive camera position with telemetry fields or constants.
 - Enable `Enable Controls` to allow free-flight camera control via mouse input in Grafana.
 - Specify a `Target Object` to keep the camera locked onto a chosen asset.
+- Click `Get Current Camera Position` in the editor to snapshot the live (mouse-adjusted) camera position back into the `Pos X/Y/Z` constants.
+- Two buttons are overlaid on the panel itself so operators can do the same without opening the editor:
+  - **Save Camera Position** stores the camera's current live position into the panel options (equivalent to `Get Current Camera Position`).
+  - **Reset Camera** instantly returns the camera to the saved/default position — no page reload required.
+  - Each button can be hidden independently via the `Show "Save Camera Position" Button` / `Show "Reset Camera" Button` checkboxes next to the camera position controls (both default to on).
 
 ### 4. Object management
 <img src="screenshots/menu4_objects.png" alt="Object management menu" width="250" />

@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { Shape, CameraSettings, ViewAngleScalingSettings } from '../types';
+import { Shape, CameraSettings, ViewAngleScalingSettings, PointLightSettings } from '../types';
 import { PanelData } from '@grafana/data';
 import { DataFieldProcessor, BoundsCalculator, CameraController } from './utils/ThreeSceneHelpers';
 import { ThreeSceneObjectManager } from './utils/ThreeSceneObjectManager';
@@ -21,7 +21,14 @@ interface ThreeSceneProps {
   enableCameraControls?: boolean;
   cameraSettings?: CameraSettings;
   viewAngleScaling?: ViewAngleScalingSettings;
+  pointLight?: PointLightSettings;
 }
+
+const POINT_LIGHT_DECAY_MAP: Record<string, number> = {
+  none: 0,
+  linear: 1,
+  inverseSquare: 2,
+};
 
 export const ThreeScene: React.FC<ThreeSceneProps> = ({
   width,
@@ -37,6 +44,7 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
   enableCameraControls = true,
   cameraSettings,
   viewAngleScaling,
+  pointLight,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene>();
@@ -49,6 +57,7 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
   const distanceDisplayRef = useRef<HTMLDivElement>(null);
   const directionalLightRef = useRef<THREE.DirectionalLight>();
   const ambientLightRef = useRef<THREE.AmbientLight>();
+  const pointLightRef = useRef<THREE.PointLight>();
   const [currentDistance, setCurrentDistance] = useState<number>(0);
   const [currentPosition, setCurrentPosition] = useState<THREE.Vector3>(new THREE.Vector3());
 
@@ -213,7 +222,14 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
       if (ambientLightRef.current) {
         ambientLightRef.current.intensity = ambientLightIntensity;
       }
-      
+
+      // 点光源の有効/強度/減衰モードの更新
+      if (pointLightRef.current) {
+        pointLightRef.current.visible = pointLight?.enabled === 'on';
+        pointLightRef.current.intensity = pointLight?.intensity ?? 1.0;
+        pointLightRef.current.decay = POINT_LIGHT_DECAY_MAP[pointLight?.decayMode ?? 'none'];
+      }
+
       // 環境マップの強度更新
       if (sceneRef.current) {
         // 環境マップが設定されていない場合は再生成
@@ -240,7 +256,15 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
     if (environmentMapGenerator) {
       environmentMapGenerator.updateIntensity(environmentMapIntensity * 0.7); // 少し控えめに
     }
-  }, [environmentMapIntensity, directionalLightIntensity, ambientLightIntensity, environmentMapGenerator]);
+  }, [
+    environmentMapIntensity,
+    directionalLightIntensity,
+    ambientLightIntensity,
+    environmentMapGenerator,
+    pointLight?.enabled,
+    pointLight?.intensity,
+    pointLight?.decayMode,
+  ]);
 
   // Initialize scene on mount
   useEffect(() => {
@@ -297,6 +321,17 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
       const ambientLight = new THREE.AmbientLight(0xffffff, ambientLightIntensity);
       scene.add(ambientLight);
       ambientLightRef.current = ambientLight;
+
+      // 点光源の設定（有効状態・強度・減衰・位置は updateLighting / 専用effectで更新）
+      const pointLightObj = new THREE.PointLight(0xffffff, 0, 0, 0);
+      pointLightObj.visible = false;
+      pointLightObj.castShadow = true;
+      pointLightObj.shadow.mapSize.set(2048, 2048);
+      pointLightObj.shadow.camera.near = 0.1;
+      pointLightObj.shadow.camera.far = 1e8;
+      pointLightObj.shadow.bias = -0.0005;
+      scene.add(pointLightObj);
+      pointLightRef.current = pointLightObj;
 
       // 環境マップの生成と設定
       envMapGen = new EnvironmentMapGenerator(renderer, 256);
@@ -516,58 +551,93 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
     }
   }, [cameraSettings?.axisTrigger, cameraController, targetObjectId, objects, boundsCalculator]);
 
-  // Handle manual camera position changes from UI fields
-  useEffect(() => {
-    if (cameraSettings && cameraController && cameraRef.current && controlsRef.current) {
-      try {
-        // Get camera position directly from settings
-        const posX = dataProcessor.getLastDataFieldValue(cameraSettings.posX, 100);
-        const posY = dataProcessor.getLastDataFieldValue(cameraSettings.posY, 100);
-        const posZ = dataProcessor.getLastDataFieldValue(cameraSettings.posZ, 100);
+  // Apply the camera position currently stored in cameraSettings to the live camera/controls.
+  // Shared by the settings-change effect below and the on-canvas "Reset Camera" button
+  // (previously resetting required a full page reload because nothing else invoked this logic).
+  const applyCameraFromSettings = useCallback(() => {
+    if (!cameraSettings || !cameraController || !cameraRef.current || !controlsRef.current) {
+      return;
+    }
+    try {
+      // Get camera position directly from settings
+      const posX = dataProcessor.getLastDataFieldValue(cameraSettings.posX, 100);
+      const posY = dataProcessor.getLastDataFieldValue(cameraSettings.posY, 100);
+      const posZ = dataProcessor.getLastDataFieldValue(cameraSettings.posZ, 100);
 
-        // Validate camera position values
-        if (!isFinite(posX) || !isFinite(posY) || !isFinite(posZ)) {
-          console.warn('Invalid camera position values:', { posX, posY, posZ });
-          return;
-        }
+      // Validate camera position values
+      if (!isFinite(posX) || !isFinite(posY) || !isFinite(posZ)) {
+        console.warn('Invalid camera position values:', { posX, posY, posZ });
+        return;
+      }
 
-        // Set camera position directly
-        cameraRef.current.position.set(posX, posY, posZ);
+      // Set camera position directly
+      cameraRef.current.position.set(posX, posY, posZ);
 
-        // Determine target position for camera to look at
-        let targetX = 0, targetY = 0, targetZ = 0;
-        if (targetObjectId !== 'origin') {
-          const targetObject = objectsRef.current.get(targetObjectId);
-          if (targetObject) {
-            targetX = targetObject.position.x;
-            targetY = targetObject.position.y;
-            targetZ = targetObject.position.z;
-            
-            // Validate target position values
-            if (!isFinite(targetX) || !isFinite(targetY) || !isFinite(targetZ)) {
-              console.warn('Invalid target position values:', { targetX, targetY, targetZ });
-              targetX = targetY = targetZ = 0; // Fallback to origin
-            }
+      // Determine target position for camera to look at
+      let targetX = 0, targetY = 0, targetZ = 0;
+      if (targetObjectId !== 'origin') {
+        const targetObject = objectsRef.current.get(targetObjectId);
+        if (targetObject) {
+          targetX = targetObject.position.x;
+          targetY = targetObject.position.y;
+          targetZ = targetObject.position.z;
+
+          // Validate target position values
+          if (!isFinite(targetX) || !isFinite(targetY) || !isFinite(targetZ)) {
+            console.warn('Invalid target position values:', { targetX, targetY, targetZ });
+            targetX = targetY = targetZ = 0; // Fallback to origin
           }
         }
-
-        controlsRef.current.target.set(targetX, targetY, targetZ);
-        controlsRef.current.update();
-      } catch (error) {
-        console.error('Error updating camera position from UI fields:', error);
       }
+
+      controlsRef.current.target.set(targetX, targetY, targetZ);
+      controlsRef.current.update();
+    } catch (error) {
+      console.error('Error updating camera position from UI fields:', error);
     }
   }, [
-    cameraSettings?.posX?.sourceType, 
+    cameraSettings?.posX?.sourceType,
     cameraSettings?.posX?.value,
-    cameraSettings?.posY?.sourceType, 
+    cameraSettings?.posY?.sourceType,
     cameraSettings?.posY?.value,
-    cameraSettings?.posZ?.sourceType, 
+    cameraSettings?.posZ?.sourceType,
     cameraSettings?.posZ?.value,
     targetObjectId,
     dataProcessor,
     cameraController,
     cameraSettings
+  ]);
+
+  // Handle manual camera position changes from UI fields
+  useEffect(() => {
+    applyCameraFromSettings();
+  }, [applyCameraFromSettings]);
+
+  // Handle point light position (const or data-field driven), including refresh on data changes
+  useEffect(() => {
+    if (!pointLightRef.current || !pointLight || pointLight.enabled !== 'on') {
+      return;
+    }
+    const posX = dataProcessor.getLastDataFieldValue(pointLight.posX, 0);
+    const posY = dataProcessor.getLastDataFieldValue(pointLight.posY, 0);
+    const posZ = dataProcessor.getLastDataFieldValue(pointLight.posZ, 0);
+
+    if (!isFinite(posX) || !isFinite(posY) || !isFinite(posZ)) {
+      console.warn('Invalid point light position values:', { posX, posY, posZ });
+      return;
+    }
+
+    pointLightRef.current.position.set(posX, posY, posZ);
+  }, [
+    pointLight?.enabled,
+    pointLight?.posX?.sourceType,
+    pointLight?.posX?.value,
+    pointLight?.posY?.sourceType,
+    pointLight?.posY?.value,
+    pointLight?.posZ?.sourceType,
+    pointLight?.posZ?.value,
+    dataProcessor,
+    data,
   ]);
 
   // Handle immediate camera movement from presets
@@ -602,11 +672,45 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
     };
 
     window.addEventListener('message', handleCameraMoveImmediate);
-    
+
     return () => {
       window.removeEventListener('message', handleCameraMoveImmediate);
     };
   }, [targetObjectId]);
+
+  const showSaveCameraButton = cameraSettings?.showSaveCameraButton ?? true;
+  const showResetCameraButton = cameraSettings?.showResetCameraButton ?? true;
+
+  // Save the camera's current live position via the same message the editor's
+  // "Get Current Camera Position" button sends; Rendezvous3DPanel's listener persists it.
+  const handleSaveCamera = useCallback(() => {
+    if (!cameraRef.current) {
+      return;
+    }
+    const { x, y, z } = cameraRef.current.position;
+    window.postMessage({
+      type: 'camera-preset-update',
+      posX: x.toString(),
+      posY: y.toString(),
+      posZ: z.toString(),
+      preset: 'canvas-save',
+    }, '*');
+  }, []);
+
+  // Re-apply the saved (or default) camera position without requiring a page reload.
+  const handleResetCamera = useCallback(() => {
+    applyCameraFromSettings();
+  }, [applyCameraFromSettings]);
+
+  const overlayButtonStyle: React.CSSProperties = {
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    color: 'white',
+    border: 'none',
+    borderRadius: '4px',
+    padding: '6px 10px',
+    fontSize: '12px',
+    cursor: 'pointer',
+  };
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -632,6 +736,26 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
         >
           <div>Position: X: {currentPosition.x.toFixed(2)}, Y: {currentPosition.y.toFixed(2)}, Z: {currentPosition.z.toFixed(2)}</div>
           <div>Distance: {currentDistance.toExponential(2)}</div>
+        </div>
+      )}
+      {(showSaveCameraButton || showResetCameraButton) && (
+        <div
+          style={{
+            position: 'absolute',
+            top: '10px',
+            right: '10px',
+            zIndex: 1000,
+            display: 'flex',
+            gap: '6px',
+            pointerEvents: 'auto',
+          }}
+        >
+          {showSaveCameraButton && (
+            <button onClick={handleSaveCamera} style={overlayButtonStyle}>Save Camera Position</button>
+          )}
+          {showResetCameraButton && (
+            <button onClick={handleResetCamera} style={overlayButtonStyle}>Reset Camera</button>
+          )}
         </div>
       )}
     </div>

@@ -62,8 +62,12 @@ export class ThreeSceneObjectManager {
 
     const geometry = new THREE.SphereGeometry(radius, 32, 32);
     const material = new THREE.MeshLambertMaterial({ color: shape.color || '#ff0000' });
+    // 前面(表面)のみが光を遮蔽し、裏面は透過するようにする
+    material.shadowSide = THREE.FrontSide;
     const mesh = new THREE.Mesh(geometry, material);
-    
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+
     mesh.position.set(posX, posY, posZ);
     mesh.name = shape.name;
     
@@ -388,10 +392,18 @@ export class ThreeSceneObjectManager {
                 //   child.material.color.multiplyScalar(1.05);
                 // }
               }
-              
+
+              // 前面(表面)のみが光を遮蔽し、裏面は透過するようにする
+              const materials = Array.isArray(child.material) ? child.material : [child.material];
+              materials.forEach((mat) => {
+                if (mat) {
+                  mat.shadowSide = THREE.FrontSide;
+                }
+              });
+
               // シャドウ設定を調整
               child.castShadow = true;
-              child.receiveShadow = false; // セルフシャドウを避けるため、影を受けないように設定
+              child.receiveShadow = true;
             }
           });
 
@@ -1008,13 +1020,17 @@ export class ThreeSceneObjectManager {
     const geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
     
     // デフォルトマテリアル（グレー色）
-    const material = new THREE.MeshLambertMaterial({ 
+    const material = new THREE.MeshLambertMaterial({
       color: 0x888888,
       transparent: true,
-      opacity: 0.8 
+      opacity: 0.8
     });
-    
+    // 前面(表面)のみが光を遮蔽し、裏面は透過するようにする
+    material.shadowSide = THREE.FrontSide;
+
     const cube = new THREE.Mesh(geometry, material);
+    cube.castShadow = true;
+    cube.receiveShadow = true;
     group.add(cube);
 
     // 位置を設定

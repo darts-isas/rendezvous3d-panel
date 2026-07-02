@@ -22,6 +22,8 @@
 <img src="screenshots/menu1_light.png" alt="ライティング設定" width="250" />
 - `Background Color` で宇宙空間を模した背景色や運用環境に合わせた色味を指定
 - `Directional/Ambient/Environment Map` を調整して金属質な機体やマーカーの見え方を整えます
+- `Point Light` を有効にすると、シーン内に1つだけ点光源を配置できます。位置はオブジェクトと同様にテレメトリフィールドまたは定数で設定可能です。光はSphereや3Dモデルの表面（前面）で遮蔽され、裏面は透過するため、太陽光や局所的な光源による陰影表現に利用できます。
+  - `Point Light Decay` で距離による減衰方法を選択できます: `None`（距離によらず一定）、`Linear`（1/d）、`Inverse Square`（1/d²、物理的に正確な減衰）。シーンの規模は数十単位から10^8を大きく超える範囲まで様々なため、手軽に使いたい場合は `None`、物理的な減衰を再現したい場合は `Linear`/`Inverse Square` を選び、`Point Light Intensity` をその分大きめに設定してください。
 
 ### 2. 視野角ベースの自動スケーリング
 <img src="screenshots/menu2_autoscale.png" alt="自動スケーリング設定" width="250" />
@@ -42,6 +44,11 @@
 - テレメトリフィールドや定数を用いてカメラ位置を制御
 - `Enable Controls` を有効にするとGrafana上でマウスドラッグによる自由視点操作が可能
 - `Target Object` を設定すると指定オブジェクトを中心にカメラが追従します
+- エディタの `Get Current Camera Position` をクリックすると、マウス操作で動かした現在のカメラ位置を `Pos X/Y/Z` の定数値として保存できます
+- パネル画面上にも同じ操作を行うための2つのボタンが表示されます（エディタを開かなくても操作可能）:
+  - **Save Camera Position**: 現在のカメラ位置をパネル設定に保存します（`Get Current Camera Position` と同等）
+  - **Reset Camera**: 保存済み（または既定）のカメラ位置に即座に戻します。リロードは不要です
+  - カメラ位置設定欄の近くにあるチェックボックス `Show "Save Camera Position" Button` / `Show "Reset Camera" Button` で、各ボタンの表示・非表示を個別に切り替えられます（デフォルトはどちらもON）
 
 ### 4. オブジェクト管理
 <img src="screenshots/menu4_objects.png" alt="オブジェクト管理" width="250" />
