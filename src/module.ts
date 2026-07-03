@@ -30,30 +30,6 @@ export const plugin = new PanelPlugin<Rendezvous3DPanelOptions>(Rendezvous3DPane
 
     // Lighting Settings
     .addSliderInput({
-      path: 'environmentMapIntensity',
-      name: 'Environment Map Intensity',
-      description: 'Controls the strength of the gradient environment lighting',
-      defaultValue: 0.6,
-      settings: {
-        min: 0.05,
-        max: 2,
-        step: 0.05,
-      },
-      category: ['Lighting Settings'],
-    })
-    .addSliderInput({
-      path: 'directionalLightIntensity',
-      name: 'Directional Light Intensity',
-      description: 'Controls the strength of the directional light source',
-      defaultValue: 0.4,
-      settings: {
-        min: 0,
-        max: 2,
-        step: 0.1,
-      },
-      category: ['Lighting Settings'],
-    })
-    .addSliderInput({
       path: 'ambientLightIntensity',
       name: 'Ambient Light Intensity',
       description: 'Controls the strength of the ambient light source',

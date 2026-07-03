@@ -21,7 +21,7 @@
 ### 1. ライティングと背景
 <img src="screenshots/menu1_light.png" alt="ライティング設定" width="250" />
 - `Background Color` で宇宙空間を模した背景色や運用環境に合わせた色味を指定
-- `Directional/Ambient/Environment Map` を調整して金属質な機体やマーカーの見え方を整えます
+- `Ambient Light Intensity`（0で完全にオフ）を調整して金属質な機体やマーカーの見え方を整えます
 - `Point Light` を有効にすると、シーン内に1つだけ点光源を配置できます。位置はオブジェクトと同様にテレメトリフィールドまたは定数で設定可能です。光はSphereや3Dモデルの表面（前面）で遮蔽され、裏面は透過するため、太陽光や局所的な光源による陰影表現に利用できます。
   - `Point Light Decay` で距離による減衰方法を選択できます: `None`（距離によらず一定）、`Linear`（1/d）、`Inverse Square`（1/d²、物理的に正確な減衰）。シーンの規模は数十単位から10^8を大きく超える範囲まで様々なため、手軽に使いたい場合は `None`、物理的な減衰を再現したい場合は `Linear`/`Inverse Square` を選び、`Point Light Intensity` をその分大きめに設定してください。
 

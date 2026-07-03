@@ -134,9 +134,7 @@ export const Rendezvous3DPanel: React.FC<Props> = ({ options, data, width, heigh
         showAxis={(options.showAxis || 'on') === 'on'}
         objects={options.objects || []}
         data={data}
-        environmentMapIntensity={options.environmentMapIntensity || 0.6}
-        directionalLightIntensity={options.directionalLightIntensity || 0.4}
-        ambientLightIntensity={options.ambientLightIntensity || 0.3}
+        ambientLightIntensity={options.ambientLightIntensity ?? 0.3}
         targetObjectId={options.targetObjectId || 'origin'}
         enableCameraControls={(options.camera?.enableControls || 'on') === 'on'}
         cameraSettings={options.camera}

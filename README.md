@@ -21,7 +21,7 @@ Switch camera targets to orbit around multiple assets. Scale adjustments let you
 ### 1. Lighting and background
 <img src="screenshots/menu1_light.png" alt="Lighting configuration" width="250" />
 - Use `Background Color` to mimic deep space or adapt the palette to your operations environment.
-- Tune `Directional/Ambient/Environment Map` to achieve the desired look for metallic spacecraft and markers.
+- Tune `Ambient Light Intensity` (0 = fully off) to achieve the desired look for metallic spacecraft and markers.
 - Enable `Point Light` to place a single point light source in the scene, driven by telemetry fields or constants just like object positions. Its light is blocked by the front faces of spheres and 3D models but passes through their back faces, so it can be used to simulate sunlight or another localized source casting shadows across the scene.
   - `Point Light Decay` controls how intensity falls off with distance: `None` (constant regardless of distance), `Linear` (1/d), or `Inverse Square` (1/d², physically accurate). Because scenes can span from tens of units to well beyond 10^8, pick `None` for a quick, distance-independent light and switch to `Linear`/`Inverse Square` with a correspondingly larger `Point Light Intensity` when physically accurate falloff is needed.
 

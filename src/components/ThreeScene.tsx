@@ -5,7 +5,6 @@ import { Shape, CameraSettings, ViewAngleScalingSettings, PointLightSettings } f
 import { PanelData } from '@grafana/data';
 import { DataFieldProcessor, BoundsCalculator, CameraController } from './utils/ThreeSceneHelpers';
 import { ThreeSceneObjectManager } from './utils/ThreeSceneObjectManager';
-import { EnvironmentMapGenerator } from './utils/EnvironmentMapGenerator';
 
 interface ThreeSceneProps {
   width: number;
@@ -14,9 +13,7 @@ interface ThreeSceneProps {
   showAxis: boolean;
   objects?: Shape[];
   data?: PanelData;
-  directionalLightIntensity?: number;
   ambientLightIntensity?: number;
-  environmentMapIntensity?: number;
   targetObjectId?: string;
   enableCameraControls?: boolean;
   cameraSettings?: CameraSettings;
@@ -37,9 +34,7 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
   showAxis,
   objects = [],
   data,
-  directionalLightIntensity = 0.4,
   ambientLightIntensity = 0.3,
-  environmentMapIntensity = 0.6,
   targetObjectId = 'origin',
   enableCameraControls = true,
   cameraSettings,
@@ -55,7 +50,6 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
   const [isInitialized, setIsInitialized] = useState(false);
   const objectsRef = useRef<Map<string, THREE.Object3D>>(new Map());
   const distanceDisplayRef = useRef<HTMLDivElement>(null);
-  const directionalLightRef = useRef<THREE.DirectionalLight>();
   const ambientLightRef = useRef<THREE.AmbientLight>();
   const pointLightRef = useRef<THREE.PointLight>();
   const [currentDistance, setCurrentDistance] = useState<number>(0);
@@ -66,7 +60,6 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
   const [boundsCalculator] = useState(() => new BoundsCalculator(dataProcessor));
   const [objectManager, setObjectManager] = useState<ThreeSceneObjectManager | null>(null);
   const [cameraController, setCameraController] = useState<CameraController | null>(null);
-  const [environmentMapGenerator, setEnvironmentMapGenerator] = useState<EnvironmentMapGenerator | null>(null);
 
   // Update data processor when data changes
   useEffect(() => {
@@ -210,57 +203,21 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
     }
   }, [objects, objectManager]);
 
-  // Update environment map lighting and directional light
+  // Update ambient/point light intensity
   const updateLighting = useCallback(() => {
-    if (sceneRef.current) {
-      // 並行光源の強度更新
-      if (directionalLightRef.current) {
-        directionalLightRef.current.intensity = directionalLightIntensity;
-      }
-      
-      // アンビエント光の強度更新
-      if (ambientLightRef.current) {
-        ambientLightRef.current.intensity = ambientLightIntensity;
-      }
-
-      // 点光源の有効/強度/減衰モードの更新
-      if (pointLightRef.current) {
-        pointLightRef.current.visible = pointLight?.enabled === 'on';
-        pointLightRef.current.intensity = pointLight?.intensity ?? 1.0;
-        pointLightRef.current.decay = POINT_LIGHT_DECAY_MAP[pointLight?.decayMode ?? 'none'];
-      }
-
-      // 環境マップの強度更新
-      if (sceneRef.current) {
-        // 環境マップが設定されていない場合は再生成
-        if (!sceneRef.current.environment && environmentMapGenerator) {
-          const environmentMap = environmentMapGenerator.generateEnvironmentMap();
-          sceneRef.current.environment = environmentMap;
-        }
-        // environmentIntensityを設定
-        sceneRef.current.environmentIntensity = environmentMapIntensity;
-        
-        // 全マテリアルの環境マップ強度を設定
-        sceneRef.current.traverse((child) => {
-          if (child instanceof THREE.Mesh && child.material) {
-            if (child.material instanceof THREE.MeshStandardMaterial || 
-                child.material instanceof THREE.MeshPhysicalMaterial) {
-              child.material.envMapIntensity = environmentMapIntensity;
-              child.material.needsUpdate = true;
-            }
-          }
-        });
-      }
+    // アンビエント光の強度更新
+    if (ambientLightRef.current) {
+      ambientLightRef.current.intensity = ambientLightIntensity;
     }
-    // 環境マップジェネレーターの強度も更新
-    if (environmentMapGenerator) {
-      environmentMapGenerator.updateIntensity(environmentMapIntensity * 0.7); // 少し控えめに
+
+    // 点光源の有効/強度/減衰モードの更新
+    if (pointLightRef.current) {
+      pointLightRef.current.visible = pointLight?.enabled === 'on';
+      pointLightRef.current.intensity = pointLight?.intensity ?? 1.0;
+      pointLightRef.current.decay = POINT_LIGHT_DECAY_MAP[pointLight?.decayMode ?? 'none'];
     }
   }, [
-    environmentMapIntensity,
-    directionalLightIntensity,
     ambientLightIntensity,
-    environmentMapGenerator,
     pointLight?.enabled,
     pointLight?.intensity,
     pointLight?.decayMode,
@@ -273,7 +230,6 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
     }
 
     let objManager: ThreeSceneObjectManager | null = null;
-    let envMapGen: EnvironmentMapGenerator | null = null;
 
     try {
       // Scene setup
@@ -308,15 +264,6 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
       controls.update();  // Apply the target setting
       controlsRef.current = controls;
 
-      // 並行光源の設定
-      const directionalLight = new THREE.DirectionalLight(0xffffff, directionalLightIntensity);
-      directionalLight.position.set(100, 100, 50);
-      directionalLight.castShadow = true;
-      directionalLight.shadow.mapSize.width = 2048;
-      directionalLight.shadow.mapSize.height = 2048;
-      scene.add(directionalLight);
-      directionalLightRef.current = directionalLight;
-
       // アンビエント光の設定
       const ambientLight = new THREE.AmbientLight(0xffffff, ambientLightIntensity);
       scene.add(ambientLight);
@@ -332,17 +279,6 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
       pointLightObj.shadow.bias = -0.0005;
       scene.add(pointLightObj);
       pointLightRef.current = pointLightObj;
-
-      // 環境マップの生成と設定
-      envMapGen = new EnvironmentMapGenerator(renderer, 256);
-      setEnvironmentMapGenerator(envMapGen);
-      
-      // 環境マップを生成してシーンに適用（強度が0でなければ）
-      if (environmentMapIntensity > 0) {
-        const environmentMap = envMapGen.generateEnvironmentMap();
-        scene.environment = environmentMap;
-        scene.environmentIntensity = environmentMapIntensity; // プロパティから設定
-      }
 
       // Initialize helper classes
       objManager = new ThreeSceneObjectManager(scene, dataProcessor, objectsRef, viewAngleScaling);
@@ -379,10 +315,6 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
         } catch (error) {
           console.warn('Error removing canvas from DOM:', error);
         }
-      }
-      // EnvironmentMapGeneratorのクリーンアップ
-      if (envMapGen) {
-        envMapGen.dispose();
       }
       // ObjectManagerのクリーンアップ
       if (objManager) {

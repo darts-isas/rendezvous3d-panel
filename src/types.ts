@@ -123,9 +123,7 @@ export interface Rendezvous3DPanelOptions {
   backgroundColor?: string;
   
   // Lighting Settings
-  directionalLightIntensity?: number;
   ambientLightIntensity?: number;
-  environmentMapIntensity?: number;
   pointLight?: PointLightSettings;
 
   // Camera Settings
