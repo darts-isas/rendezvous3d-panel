@@ -35,9 +35,9 @@
 1. カメラ座標とオブジェクト座標のユークリッド距離 `d` を計算します。
 2. 設定値 `targetAngularSize`（ラジアン）を用い、視野角が一定になる物理サイズ `S = 2 * d * tan(targetAngularSize / 2)` を導出します。
 3. オブジェクトのバウンディングボックス最大長 `L`（Sphereでは直径、3D Modelではモデル読み込み時に計測）を取得し、必要スケール `scaleRaw = S / L` を算出します。
-4. `minSize` と `maxSize` で `scaleRaw` をクランプし、アスペクト比補正 `applyShapeAdjustment` を掛けた後、`userData.originalScale`（Auto Scale Factor や unit 変換を含む）と乗算して最終スケールを得ます。
+4. `minSize` と `maxSize` で `scaleRaw` をクランプし、アスペクト比補正 `applyShapeAdjustment` を掛けた後、`userData.originalScale`（モデルのunit変換を含む）と乗算して最終スケールを得ます。旧ダッシュボードでは、保存済みのオブジェクト別倍率も互換目的で適用されます。
 
-この計算はカメラが移動した直後にも適用されるため、ズーム操作に追従して常に同じ画角でオブジェクトが表示されます。Auto Radius/Auto Scale を無効にすると `viewAngleConfig.enabled` が `false` になり、元のスケールが維持されます。
+この計算はカメラが移動した直後にも適用されるため、ズーム操作に追従して常に同じ画角でオブジェクトが表示されます。Auto Radiusを無効にすると指定した半径を使用し、Auto Scaleを無効にするとunit変換後の3Dモデル固有サイズを使用します。
 
 ### 3. カメラ制御と注視対象
 <img src="screenshots/menu3_camera.png" alt="カメラ設定" width="250" />
@@ -63,13 +63,14 @@
 ### 6. Sphere（球体）オブジェクト
 <img src="screenshots/menu6_sphere.png" alt="Sphere設定" width="250" />
 - 位置（Pos X/Y/Z）にテレメトリを割り当て、可視化対象を球体で表現
-- `Auto Radius` 有効時は視野角ベースで自動スケールし、`Auto Scale Factor` で微調整
+- 半径を直接指定するか、`Auto Radius` を有効にして視野角ベースで自動決定
 
 ### 7. 3D Model オブジェクト
 <img src="screenshots/menu7_3dmodel.png" alt="3Dモデル設定" width="250" />
 - GLTF等のURLを指定すると宇宙機モデルを読み込み、未指定時は基準となるキューブを自動描画
 - 位置とクォータニオン（Quat X/Y/Z/W）をテレメトリに紐づけて姿勢表示
 - `Unit` を `km` / `m` から選択してスケール補正
+- `Auto Scale` 有効時は視野角ベースで表示サイズを調整し、無効時はモデル固有サイズを使用
 
 ### 8. Polyline（軌跡・ベクトル）オブジェクト
 <img src="screenshots/menu8_polyline.png" alt="Polyline設定" width="250" />

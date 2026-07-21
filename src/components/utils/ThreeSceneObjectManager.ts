@@ -49,6 +49,57 @@ export class ThreeSceneObjectManager {
     });
   }
 
+  private createViewAngleConfig(enabled: boolean) {
+    return {
+      enabled,
+      targetAngularSize: this.globalViewAngleSettings.targetAngularSize,
+      minSize: this.globalViewAngleSettings.minSize,
+      maxSize: this.globalViewAngleSettings.maxSize
+    };
+  }
+
+  private getModelUnitScale(shape: any): number {
+    return shape.unit === 'm' ? 0.001 : 1.0;
+  }
+
+  private getLegacyAutoScaleFactor(shape: any): number {
+    return shape.autoScaleFactor || 1.0;
+  }
+
+  private getLegacyManualScale(shape: any): number {
+    return shape.scale !== undefined ? shape.scale : 1.0;
+  }
+
+  private setSphereGeometryRadius(mesh: THREE.Mesh, radius: number): void {
+    if (!(mesh.geometry instanceof THREE.SphereGeometry)) {
+      return;
+    }
+
+    if (mesh.geometry.parameters.radius === radius) {
+      return;
+    }
+
+    const newGeometry = new THREE.SphereGeometry(radius, 32, 32);
+    mesh.geometry.dispose();
+    mesh.geometry = newGeometry;
+  }
+
+  private applyModelSizing(model: THREE.Object3D, shape: any): void {
+    const unitScale = this.getModelUnitScale(shape);
+    const nativeMaxDimension = model.userData.nativeMaxDimension;
+    const autoScaleFactor = this.getLegacyAutoScaleFactor(shape);
+
+    model.userData.unitScale = unitScale;
+    model.userData.originalSize = nativeMaxDimension * unitScale;
+    model.userData.originalScale = autoScaleFactor * unitScale;
+    model.userData.viewAngleConfig = this.createViewAngleConfig(shape.autoScale === 'on');
+
+    const displayedScale = shape.autoScale === 'off'
+      ? unitScale * this.getLegacyManualScale(shape)
+      : unitScale;
+    model.scale.setScalar(displayedScale);
+  }
+
   // Create sphere object
   createSphere(shape: any): THREE.Mesh {
     const posX = this.dataProcessor.getLastDataFieldValue(shape.posX, 0);
@@ -71,23 +122,12 @@ export class ThreeSceneObjectManager {
     mesh.position.set(posX, posY, posZ);
     mesh.name = shape.name;
     
-    // Auto Radiusの場合、自動的にView Angleスケーリングを有効にする
-    const viewAngleConfig = {
-      enabled: shape.autoRadius === 'on', // Auto Radiusが有効な時にView Angleスケーリングも有効
-      targetAngularSize: this.globalViewAngleSettings.targetAngularSize,
-      minSize: this.globalViewAngleSettings.minSize,
-      maxSize: this.globalViewAngleSettings.maxSize
-    };
-    
-    // autoScaleFactorを取得（デフォルト値: 1）
-    const autoScaleFactor = shape.autoScaleFactor || 1;
-    
     mesh.userData = { 
       shapeId: shape.id, 
       shapeType: shape.type,
       originalSize: radius * 2, // 直径を元のサイズとして保存
-      originalScale: autoScaleFactor, // autoScaleFactorを初期スケールとして設定
-      viewAngleConfig: viewAngleConfig
+      originalScale: this.getLegacyAutoScaleFactor(shape),
+      viewAngleConfig: this.createViewAngleConfig(shape.autoRadius === 'on')
     };
 
     return mesh;
@@ -356,14 +396,14 @@ export class ThreeSceneObjectManager {
             return;
           }
 
-          const model = gltf.scene;
-          model.position.set(posX, posY, posZ);
-
-          // 単位に応じたスケーリングを適用
-          const unitScale = shape.unit === 'm' ? 0.001 : 1.0; // メートル単位の場合は1/1000
+          // Keep the transforms authored in the model and apply telemetry/unit scaling
+          // to a dedicated wrapper group.
+          const model = new THREE.Group();
+          const modelContent = gltf.scene;
+          model.add(modelContent);
 
           // 3Dモデルのマテリアルを改善して均等な照明を確保
-          model.traverse((child) => {
+          modelContent.traverse((child) => {
             if (child instanceof THREE.Mesh) {
               // 元のマテリアルがある場合、より明るい設定に変更
               if (child.material) {
@@ -407,6 +447,13 @@ export class ThreeSceneObjectManager {
             }
           });
 
+          // Measure the model-authored geometry before applying scene unit scaling,
+          // telemetry attitude, or a legacy manual scale.
+          modelContent.updateMatrixWorld(true);
+          const sizeInfo = ViewAngleScaling.calculateComplexModelSize(modelContent);
+
+          model.position.set(posX, posY, posZ);
+
           // Apply rotation if quaternion is provided
           if (shape.quatX && shape.quatY && shape.quatZ && shape.quatW) {
             const quatX = this.dataProcessor.getLastDataFieldValue(shape.quatX, 0);
@@ -416,43 +463,18 @@ export class ThreeSceneObjectManager {
             
             model.quaternion.set(quatX, quatY, quatZ, quatW);
           }
-
-          // Apply scale (including unit scaling)
-          if (shape.autoScale === 'off' && shape.scale !== undefined) {
-            const scale = shape.scale * unitScale;
-            model.scale.set(scale, scale, scale);
-          } else {
-            // Auto scale の場合も単位スケーリングは適用
-            model.scale.set(unitScale, unitScale, unitScale);
-          }
-
-          // モデルサイズ情報を計算して保存（単位スケーリング適用後）
-          const sizeInfo = ViewAngleScaling.calculateComplexModelSize(model);
-          
-          // autoScaleFactorを取得（デフォルト値: 1）
-          const autoScaleFactor = shape.autoScaleFactor || 1;
-          
-          // Auto Scaleの場合、自動的にView Angleスケーリングを有効にする
-          const viewAngleConfig = {
-            enabled: shape.autoScale === 'on', // Auto Scaleが有効な時にView Angleスケーリングも有効
-            targetAngularSize: this.globalViewAngleSettings.targetAngularSize,
-            minSize: this.globalViewAngleSettings.minSize,
-            maxSize: this.globalViewAngleSettings.maxSize
-          };
           
           model.userData = { 
             shapeId: shape.id, 
             shapeType: shape.type,
-            originalSize: sizeInfo.maxDimension,
-            originalScale: autoScaleFactor * unitScale, // autoScaleFactorと単位スケールの組み合わせ
+            nativeMaxDimension: sizeInfo.maxDimension,
             meshCount: sizeInfo.meshCount,
             aspectRatio: sizeInfo.totalSize.x / sizeInfo.totalSize.y,
             volume: sizeInfo.volume,
             boundingBox: sizeInfo.boundingBox,
-            viewAngleConfig: viewAngleConfig,
-            unitScale: unitScale, // 単位スケール情報を保存
             originalUrl: shape.url // URLを記録して変更検出に使用
           };
+          this.applyModelSizing(model, shape);
 
           model.name = shape.name;
 
@@ -514,29 +536,15 @@ export class ThreeSceneObjectManager {
             existingObject.material.color.set(shape.color || '#ff0000');
           }
           
-          // 球体のサイズを更新
-          if (shape.autoRadius === 'off' && shape.radius !== undefined) {
-            if (existingObject instanceof THREE.Mesh && existingObject.geometry instanceof THREE.SphereGeometry) {
-              // サイズが変更された場合は新しいジオメトリを作成
-              const newGeometry = new THREE.SphereGeometry(shape.radius, 32, 32);
-              existingObject.geometry.dispose();
-              existingObject.geometry = newGeometry;
-              existingObject.userData.originalSize = shape.radius * 2;
-            }
+          if (existingObject instanceof THREE.Mesh) {
+            const radius = shape.autoRadius === 'off' ? (shape.radius ?? 1) : 1;
+            this.setSphereGeometryRadius(existingObject, radius);
+            existingObject.scale.setScalar(1);
+            existingObject.userData.originalSize = radius * 2;
           }
-          
-          // 視野角設定を更新
-          const viewAngleConfig = {
-            enabled: shape.autoRadius === 'on',
-            targetAngularSize: this.globalViewAngleSettings.targetAngularSize,
-            minSize: this.globalViewAngleSettings.minSize,
-            maxSize: this.globalViewAngleSettings.maxSize
-          };
-          existingObject.userData.viewAngleConfig = viewAngleConfig;
-          
-          // autoScaleFactorを更新
-          const autoScaleFactor = shape.autoScaleFactor || 1;
-          existingObject.userData.originalScale = autoScaleFactor;
+
+          existingObject.userData.viewAngleConfig = this.createViewAngleConfig(shape.autoRadius === 'on');
+          existingObject.userData.originalScale = this.getLegacyAutoScaleFactor(shape);
           
         } else if (shape.type === 'annotation') {
           // Update annotation text and positions
@@ -583,37 +591,7 @@ export class ThreeSceneObjectManager {
             existingObject.quaternion.set(quatX, quatY, quatZ, quatW);
           }
           
-          // 単位スケーリングを確認・更新
-          const unitScale = shape.unit === 'm' ? 0.001 : 1.0;
-          const currentUnitScale = existingObject.userData.unitScale || 1.0;
-          
-          // 単位が変更された場合、または初期設定の場合
-          if (unitScale !== currentUnitScale) {
-            existingObject.userData.unitScale = unitScale;
-            existingObject.userData.originalScale = (existingObject.userData.originalScale / currentUnitScale) * unitScale;
-          }
-          
-          // スケールを更新（autoScale === 'off' の場合のみ手動スケール適用）
-          if (shape.autoScale === 'off' && shape.scale !== undefined) {
-            const scale = shape.scale * unitScale;
-            existingObject.scale.set(scale, scale, scale);
-          } else {
-            // Auto scaleの場合は単位スケーリングのみ適用（viewAngleScalingが別途適用される）
-            const baseScale = unitScale;
-            existingObject.scale.set(baseScale, baseScale, baseScale);
-          }
-          
-          const viewAngleConfig = {
-            enabled: shape.autoScale === 'on',
-            targetAngularSize: this.globalViewAngleSettings.targetAngularSize,
-            minSize: this.globalViewAngleSettings.minSize,
-            maxSize: this.globalViewAngleSettings.maxSize
-          };
-          existingObject.userData.viewAngleConfig = viewAngleConfig;
-          
-          // autoScaleFactorを更新
-          const autoScaleFactor = shape.autoScaleFactor || 1;
-          existingObject.userData.originalScale = autoScaleFactor * unitScale;
+          this.applyModelSizing(existingObject, shape);
           
           // URLを更新
           existingObject.userData.originalUrl = newUrl;
@@ -1046,19 +1024,7 @@ export class ThreeSceneObjectManager {
       group.quaternion.set(quatX, quatY, quatZ, quatW);
     }
 
-    // 単位に応じたスケーリングを適用
-    const unitScale = shape.unit === 'm' ? 0.001 : 1.0; // メートル単位の場合は1/1000
-
-    // スケールを適用（単位スケーリング含む）
-    if (shape.autoScale === 'off' && shape.scale !== undefined) {
-      const scale = shape.scale * unitScale;
-      group.scale.set(scale, scale, scale);
-    } else {
-      // Auto scale の場合も単位スケーリングは適用
-      group.scale.set(unitScale, unitScale, unitScale);
-    }
-
-    // キューブのサイズ情報を計算（単位スケーリング適用後）
+    // キューブ自身が定義するネイティブサイズ情報
     const sizeInfo = {
       maxDimension: cubeSize,
       totalSize: new THREE.Vector3(cubeSize, cubeSize, cubeSize),
@@ -1070,31 +1036,18 @@ export class ThreeSceneObjectManager {
       )
     };
 
-    // Auto Scaleの場合、自動的にView Angleスケーリングを有効にする
-    const viewAngleConfig = {
-      enabled: shape.autoScale === 'on',
-      targetAngularSize: this.globalViewAngleSettings.targetAngularSize,
-      minSize: this.globalViewAngleSettings.minSize,
-      maxSize: this.globalViewAngleSettings.maxSize
-    };
-    
-    // autoScaleFactorを取得（デフォルト値: 1）
-    const autoScaleFactor = shape.autoScaleFactor || 1;
-    
     group.userData = { 
       shapeId: shape.id, 
       shapeType: shape.type,
-      originalSize: sizeInfo.maxDimension,
-      originalScale: autoScaleFactor * unitScale, // autoScaleFactorと単位スケールの組み合わせ
+      nativeMaxDimension: sizeInfo.maxDimension,
       meshCount: sizeInfo.meshCount,
       aspectRatio: 1.0, // 正六面体なので1:1:1
       volume: sizeInfo.volume,
       boundingBox: sizeInfo.boundingBox,
-      viewAngleConfig: viewAngleConfig,
-      unitScale: unitScale, // 単位スケール情報を保存
       isDefaultCube: true, // デフォルトキューブであることを示すフラグ
       originalUrl: shape.url || '' // URLを記録して変更検出に使用
     };
+    this.applyModelSizing(group, shape);
 
     group.name = shape.name;
 

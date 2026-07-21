@@ -35,9 +35,9 @@ The algorithm is implemented in `ViewAngleScaling.calculateViewBasedScale` (`src
 1. Compute the Euclidean distance `d` between the camera and the object.
 2. Use `targetAngularSize` (radians) to derive a physical size with constant apparent angle via `S = 2 * d * tan(targetAngularSize / 2)`.
 3. Acquire the object's maximum bounding-length `L` (diameter for spheres, measured at model import for 3D models) and compute `scaleRaw = S / L`.
-4. Clamp `scaleRaw` with `minSize` and `maxSize`, apply the aspect ratio adjustment `applyShapeAdjustment`, and multiply by `userData.originalScale` (including Auto Scale Factor and unit conversions) to produce the final scale.
+4. Clamp `scaleRaw` with `minSize` and `maxSize`, apply the aspect ratio adjustment `applyShapeAdjustment`, and multiply by `userData.originalScale` (including model-unit conversion) to produce the final scale. Legacy dashboards may also include their saved per-object scale factor.
 
-Because this calculation runs immediately after camera movement, objects retain a consistent angular size through zoom operations. Disabling Auto Radius/Auto Scale sets `viewAngleConfig.enabled` to `false`, keeping the original scale.
+Because this calculation runs immediately after camera movement, objects retain a consistent angular size through zoom operations. Disabling Auto Radius uses the configured sphere radius; disabling Auto Scale uses the 3D model's native size with its model-unit conversion.
 
 ### 3. Camera control and focus
 <img src="screenshots/menu3_camera.png" alt="Camera configuration" width="250" />
@@ -63,11 +63,12 @@ Because this calculation runs immediately after camera movement, objects retain 
 ### 6. Sphere objects
 <img src="screenshots/menu6_sphere.png" alt="Sphere configuration" width="250" />
 - Assign telemetry to `Pos X/Y/Z` fields to visualize targets as spheres.
-- Enable `Auto Radius` for view-angle scaling and fine-tune with `Auto Scale Factor`.
+- Choose between an explicit `Radius` and view-angle sizing with `Auto Radius`.
 
 ### 7. 3D model objects
 <img src="screenshots/menu7_3dmodel.png" alt="3D model configuration" width="250" />
 - Provide a GLTF or similar URL to load spacecraft geometry; a reference cube renders by default when no model is supplied.
+- Enable `Auto Scale` to keep the model visible using view-angle scaling; disable it to use the model's native size.
 - Bind telemetry to position and quaternion (`Quat X/Y/Z/W`) fields to show attitude.
 - Choose `Unit` (`km` or `m`) to normalize the scale.
 

@@ -39,8 +39,7 @@ const createNewShape = (type: ShapeType, id: string): Shape => {
         posY: createDefaultDataField(),
         posZ: createDefaultDataField(),
         autoRadius: 'on' as const,
-        radius: 1,
-        autoScaleFactor: 1
+        radius: 1
       };
     case 'annotation':
       return {
@@ -79,8 +78,6 @@ const createNewShape = (type: ShapeType, id: string): Shape => {
         quatZ: createDefaultDataField(),
         quatW: { sourceType: 'const', value: '1' },
         autoScale: 'on' as const,
-        scale: 1,
-        autoScaleFactor: 1,
         unit: 'km' as const // デフォルトは km
       };
     default:
@@ -145,17 +142,6 @@ const ObjectsEditor: React.FC<ObjectsEditorProps> = ({ value = [], onChange, con
                 onChange={(e) => updateShape({ ...shape, autoRadius: e.currentTarget.checked ? 'on' : 'off' })}
               />
             </InlineField>
-            {shape.autoRadius === 'on' && (
-              <InlineField label="Auto Scale Factor" labelWidth={16}>
-                <Input
-                  type="number"
-                  width={20}
-                  value={shape.autoScaleFactor || 1}
-                  onChange={(e) => updateShape({ ...shape, autoScaleFactor: parseFloat(e.currentTarget.value) || 1 })}
-                  placeholder="1.0"
-                />
-              </InlineField>
-            )}
             {shape.autoRadius === 'off' && (
               <InlineField label="Radius" labelWidth={16}>
                 <Input
@@ -377,27 +363,6 @@ const ObjectsEditor: React.FC<ObjectsEditorProps> = ({ value = [], onChange, con
                 onChange={(e) => updateShape({ ...modelShape, autoScale: e.currentTarget.checked ? 'on' : 'off' })}
               />
             </InlineField>
-            {modelShape.autoScale === 'on' && (
-              <InlineField label="Auto Scale Factor" labelWidth={16}>
-                <Input
-                  type="number"
-                  width={20}
-                  value={modelShape.autoScaleFactor || 1}
-                  onChange={(e) => updateShape({ ...modelShape, autoScaleFactor: parseFloat(e.currentTarget.value) || 1 })}
-                  placeholder="1.0"
-                />
-              </InlineField>
-            )}
-            {modelShape.autoScale === 'off' && (
-              <InlineField label="Scale" labelWidth={16}>
-                <Input
-                  type="number"
-                  width={20}
-                  value={modelShape.scale}
-                  onChange={(e) => updateShape({ ...modelShape, scale: parseFloat(e.currentTarget.value) || 1 })}
-                />
-              </InlineField>
-            )}
           </Stack>
         );
       }

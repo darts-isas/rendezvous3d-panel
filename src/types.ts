@@ -21,7 +21,8 @@ export interface SphereShape extends BaseShape {
   posZ: DataField;
   autoRadius: 'on' | 'off';
   radius?: number; // autoRadius が 'off' の場合のみ使用
-  autoScaleFactor?: number; // autoRadius が 'on' の場合のスケール調整値
+  /** @deprecated Existing dashboards only. New spheres use View Angle Scaling without a per-object factor. */
+  autoScaleFactor?: number;
 }
 
 export interface AnnotationShape extends BaseShape {
@@ -57,8 +58,10 @@ export interface ModelShape extends BaseShape {
   quatZ: DataField;
   quatW: DataField;
   autoScale: 'on' | 'off';
-  scale?: number; // autoScale が 'off' の場合のみ使用
-  autoScaleFactor?: number; // autoScale が 'on' の場合のスケール調整値
+  /** @deprecated Existing dashboards only. New models use their native size. */
+  scale?: number;
+  /** @deprecated Existing dashboards only. New models use View Angle Scaling without a per-object factor. */
+  autoScaleFactor?: number;
   unit?: 'm' | 'km'; // モデルの単位設定（デフォルト: 'km'）
 }
 

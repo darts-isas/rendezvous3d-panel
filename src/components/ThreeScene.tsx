@@ -420,6 +420,7 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
     } : {}),
     ...(obj.type === '3dmodel' ? {
       url: obj.url,
+      unit: obj.unit,
       autoScale: obj.autoScale,
       scale: obj.scale,
       autoScaleFactor: obj.autoScaleFactor
