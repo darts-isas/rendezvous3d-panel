@@ -528,12 +528,6 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
       console.error('Error updating camera position from UI fields:', error);
     }
   }, [
-    cameraSettings?.posX?.sourceType,
-    cameraSettings?.posX?.value,
-    cameraSettings?.posY?.sourceType,
-    cameraSettings?.posY?.value,
-    cameraSettings?.posZ?.sourceType,
-    cameraSettings?.posZ?.value,
     targetObjectId,
     dataProcessor,
     cameraController,
@@ -544,6 +538,22 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
   useEffect(() => {
     applyCameraFromSettings();
   }, [applyCameraFromSettings]);
+
+  const hasFieldDrivenCameraPosition =
+    cameraSettings?.posX?.sourceType === 'field' ||
+    cameraSettings?.posY?.sourceType === 'field' ||
+    cameraSettings?.posZ?.sourceType === 'field';
+
+  // Field-backed camera coordinates must be re-resolved whenever Grafana supplies new data.
+  // Do not do this for constant-only cameras: a data refresh must not undo mouse movement.
+  useEffect(() => {
+    if (!data || !hasFieldDrivenCameraPosition) {
+      return;
+    }
+
+    dataProcessor.setData(data);
+    applyCameraFromSettings();
+  }, [data, dataProcessor, hasFieldDrivenCameraPosition, applyCameraFromSettings]);
 
   // Handle point light position (const or data-field driven), including refresh on data changes
   useEffect(() => {

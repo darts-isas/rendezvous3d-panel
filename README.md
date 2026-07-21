@@ -41,7 +41,7 @@ Because this calculation runs immediately after camera movement, objects retain 
 
 ### 3. Camera control and focus
 <img src="screenshots/menu3_camera.png" alt="Camera configuration" width="250" />
-- Drive camera position with telemetry fields or constants.
+- Drive camera position with telemetry fields or constants. Field-backed coordinates use the field's latest value and refresh whenever Grafana supplies new panel data; constant-only positions are not reapplied by data refreshes.
 - Enable `Enable Controls` to allow free-flight camera control via mouse input in Grafana.
 - Specify a `Target Object` to keep the camera locked onto a chosen asset.
 - Click `Get Current Camera Position` in the editor to snapshot the live (mouse-adjusted) camera position back into the `Pos X/Y/Z` constants.
