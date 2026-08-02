@@ -75,17 +75,17 @@ describe('ThreeSceneObjectManager object sizing', () => {
     manager.addObjectToScene(sphere, automatic.id);
 
     manager.updateViewAngleScaling();
-    expect(sphere.geometry.parameters.radius).toBe(1);
-    expect(2 * sphere.geometry.parameters.radius * sphere.scale.x).toBeCloseTo(requiredSizeAt100);
+    expect((sphere.geometry as THREE.SphereGeometry).parameters.radius).toBe(1);
+    expect(2 * (sphere.geometry as THREE.SphereGeometry).parameters.radius * sphere.scale.x).toBeCloseTo(requiredSizeAt100);
 
     manager.updateObjects([{ ...automatic, autoRadius: 'off', radius: 3 }]);
-    expect(sphere.geometry.parameters.radius).toBe(3);
+    expect((sphere.geometry as THREE.SphereGeometry).parameters.radius).toBe(3);
     expect(sphere.scale.toArray()).toEqual([1, 1, 1]);
 
     manager.updateObjects([automatic]);
     manager.updateViewAngleScaling();
-    expect(sphere.geometry.parameters.radius).toBe(1);
-    expect(2 * sphere.geometry.parameters.radius * sphere.scale.x).toBeCloseTo(requiredSizeAt100);
+    expect((sphere.geometry as THREE.SphereGeometry).parameters.radius).toBe(1);
+    expect(2 * (sphere.geometry as THREE.SphereGeometry).parameters.radius * sphere.scale.x).toBeCloseTo(requiredSizeAt100);
   });
 
   it('keeps default-cube auto scaling stable across model-unit changes', async () => {
@@ -117,7 +117,7 @@ describe('ThreeSceneObjectManager object sizing', () => {
     manager.addObjectToScene(sphere, legacySphereShape.id);
 
     manager.updateViewAngleScaling();
-    expect(2 * sphere.geometry.parameters.radius * sphere.scale.x).toBeCloseTo(requiredSizeAt100 * 2);
+    expect(2 * (sphere.geometry as THREE.SphereGeometry).parameters.radius * sphere.scale.x).toBeCloseTo(requiredSizeAt100 * 2);
 
     const legacy = makeModel({ autoScale: 'off', scale: 3, autoScaleFactor: 2 });
     const cube = await manager.create3DModel(legacy);

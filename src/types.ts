@@ -57,6 +57,14 @@ export interface ModelShape extends BaseShape {
   quatY: DataField;
   quatZ: DataField;
   quatW: DataField;
+  /** Retain timestamped field values and interpolate/extrapolate the model attitude. */
+  interpEnabled?: boolean;
+  /** Qualified or bare time field name. Empty means auto-detect the frame's time field. */
+  interpTimeField?: string;
+  /** Maximum number of timestamped quaternion samples retained across refreshes. */
+  interpBufferSize?: number;
+  /** Maximum time beyond the newest sample to extrapolate. */
+  interpMaxExtrapMs?: number;
   autoScale: 'on' | 'off';
   /** @deprecated Existing dashboards only. New models use their native size. */
   scale?: number;

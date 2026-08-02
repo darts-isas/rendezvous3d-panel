@@ -70,7 +70,19 @@ Because this calculation runs immediately after camera movement, objects retain 
 - Provide a GLTF or similar URL to load spacecraft geometry; a reference cube renders by default when no model is supplied.
 - Enable `Auto Scale` to keep the model visible using view-angle scaling; disable it to use the model's native size.
 - Bind telemetry to position and quaternion (`Quat X/Y/Z/W`) fields to show attitude.
+- Use the per-model `Interpolation` settings to keep field-driven attitude motion smooth between data refreshes.
 - Choose `Unit` (`km` or `m`) to normalize the scale.
+
+#### Quaternion interpolation and extrapolation
+
+Interpolation is configured independently for each 3D model. It is active only when Quaternion X, Y, Z, and W are all set to `Field`; disabling it or mixing `Const` and `Field` keeps the existing latest-value behavior.
+
+- `Enable`: Retain timestamped quaternions across refreshes and slerp toward the end of Grafana's displayed time range.
+- `Time Field`: Select the sample timestamp field. Leave it empty to auto-detect the time field in the frame containing all four quaternion fields. Field names may be written as `Series.Field`, `[Series]{Field}`, or a bare field name.
+- `Retained Samples`: Fixed history size per model. The default is `2`, which provides constant-angular-velocity extrapolation from the newest pair.
+- `Max Extrapolation [ms]`: Limit motion after the newest sample. `0` disables extrapolation; the default is `5000` ms.
+
+Samples are validated, normalized, sorted by time, and retained separately for each model. Moving the displayed range into the past or changing the selected fields resets that model's history. Relative ranges ending in `now` continue advancing with wall time; absolute ranges stay fixed at their configured end time.
 
 ### 8. Polyline objects
 <img src="screenshots/menu8_polyline.png" alt="Polyline configuration" width="250" />

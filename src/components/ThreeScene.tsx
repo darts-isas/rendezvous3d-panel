@@ -5,6 +5,11 @@ import { Shape, CameraSettings, ViewAngleScalingSettings, PointLightSettings } f
 import { PanelData } from '@grafana/data';
 import { DataFieldProcessor, BoundsCalculator, CameraController } from './utils/ThreeSceneHelpers';
 import { ThreeSceneObjectManager } from './utils/ThreeSceneObjectManager';
+import {
+  getInterpolationTargetMs,
+  isQuaternionInterpolationActive,
+  QuaternionInterpolationStore,
+} from './utils/QuaternionInterpolation';
 
 interface ThreeSceneProps {
   width: number;
@@ -54,6 +59,26 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
   const pointLightRef = useRef<THREE.PointLight>();
   const [currentDistance, setCurrentDistance] = useState<number>(0);
   const [currentPosition, setCurrentPosition] = useState<THREE.Vector3>(new THREE.Vector3());
+  const [interpolationStore] = useState(() => new QuaternionInterpolationStore());
+  const interpolationConfigRef = useRef<Map<string, number>>(new Map());
+  const interpolationTimeRef = useRef<{ timeRange: PanelData['timeRange'] | undefined; arrivedAt: number }>({
+    timeRange: data?.timeRange,
+    arrivedAt: Date.now(),
+  });
+  const lastInterpolationDataRef = useRef<PanelData | undefined>(data);
+
+  if (lastInterpolationDataRef.current !== data) {
+    lastInterpolationDataRef.current = data;
+    interpolationTimeRef.current.arrivedAt = Date.now();
+  }
+  interpolationTimeRef.current.timeRange = data?.timeRange;
+  const interpolationConfig = new Map<string, number>();
+  objects.forEach((shape) => {
+    if (shape.type === '3dmodel' && isQuaternionInterpolationActive(shape)) {
+      interpolationConfig.set(shape.id, Math.max(0, Number(shape.interpMaxExtrapMs) || 0));
+    }
+  });
+  interpolationConfigRef.current = interpolationConfig;
 
   // Helper classes
   const [dataProcessor] = useState(() => new DataFieldProcessor(data));
@@ -118,6 +143,19 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
       objectManager.updateViewAngleScaling();
     }
 
+    const interpolationTarget = getInterpolationTargetMs(
+      interpolationTimeRef.current.timeRange,
+      interpolationTimeRef.current.arrivedAt,
+      Date.now()
+    );
+    interpolationConfigRef.current.forEach((maxExtrapMs, id) => {
+      const object = objectsRef.current.get(id);
+      const quaternion = interpolationStore.sample(id, interpolationTarget, maxExtrapMs);
+      if (object && quaternion) {
+        object.quaternion.copy(quaternion);
+      }
+    });
+
     // 距離表示が有効な場合、カメラとターゲットオブジェクト間の距離を計算
     if (cameraSettings?.showPositionAndDistance === 'on') {
       let targetPosition = new THREE.Vector3(0, 0, 0); // Default to origin
@@ -136,7 +174,7 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
     
     rendererRef.current.render(sceneRef.current, cameraRef.current);
     animationIdRef.current = requestAnimationFrame(animate);
-  }, [objectManager, cameraSettings?.showPositionAndDistance, targetObjectId]);
+  }, [objectManager, cameraSettings?.showPositionAndDistance, targetObjectId, interpolationStore]);
 
   // Update objects based on shape configuration
   const updateObjects = useCallback(async () => {
@@ -427,6 +465,29 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
     } : {})
   })));
 
+  const interpolationHash = JSON.stringify(objects
+    .filter((shape) => shape.type === '3dmodel')
+    .map((shape) => [
+      shape.id,
+      shape.interpEnabled,
+      shape.interpTimeField,
+      shape.interpBufferSize,
+      shape.quatX?.sourceType,
+      shape.quatX?.value,
+      shape.quatY?.sourceType,
+      shape.quatY?.value,
+      shape.quatZ?.sourceType,
+      shape.quatZ?.value,
+      shape.quatW?.sourceType,
+      shape.quatW?.value,
+    ]));
+
+  useEffect(() => {
+    const models = objects.filter((shape) => shape.type === '3dmodel');
+    interpolationStore.retain(new Set(models.map((shape) => shape.id)));
+    models.forEach((shape) => interpolationStore.update(shape, data?.series ?? [], interpolationTimeRef.current.arrivedAt));
+  }, [data, interpolationHash, interpolationStore, objects]);
+
   // Update objects when configuration changes
   useEffect(() => {
     if (isInitialized && objectManager) {
@@ -579,6 +640,7 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
     pointLight?.posY?.value,
     pointLight?.posZ?.sourceType,
     pointLight?.posZ?.value,
+    pointLight,
     dataProcessor,
     data,
   ]);

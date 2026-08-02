@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
-import { Shape, ViewAngleScalingSettings } from '../../types';
+import { ModelShape, Shape, ViewAngleScalingSettings } from '../../types';
 import { DataFieldProcessor } from './ThreeSceneHelpers';
 import { ViewAngleScaling } from './ViewAngleScaling';
+import { isQuaternionInterpolationActive } from './QuaternionInterpolation';
 
 export class ThreeSceneObjectManager {
   private scene: THREE.Scene;
@@ -455,7 +456,7 @@ export class ThreeSceneObjectManager {
           model.position.set(posX, posY, posZ);
 
           // Apply rotation if quaternion is provided
-          if (shape.quatX && shape.quatY && shape.quatZ && shape.quatW) {
+          if (!isQuaternionInterpolationActive(shape as ModelShape) && shape.quatX && shape.quatY && shape.quatZ && shape.quatW) {
             const quatX = this.dataProcessor.getLastDataFieldValue(shape.quatX, 0);
             const quatY = this.dataProcessor.getLastDataFieldValue(shape.quatY, 0);
             const quatZ = this.dataProcessor.getLastDataFieldValue(shape.quatZ, 0);
@@ -582,7 +583,7 @@ export class ThreeSceneObjectManager {
           existingObject.position.set(posX, posY, posZ);
           
           // クオータニオンを更新
-          if (shape.quatX && shape.quatY && shape.quatZ && shape.quatW) {
+          if (!isQuaternionInterpolationActive(shape) && shape.quatX && shape.quatY && shape.quatZ && shape.quatW) {
             const quatX = this.dataProcessor.getLastDataFieldValue(shape.quatX, 0);
             const quatY = this.dataProcessor.getLastDataFieldValue(shape.quatY, 0);
             const quatZ = this.dataProcessor.getLastDataFieldValue(shape.quatZ, 0);
@@ -1015,7 +1016,7 @@ export class ThreeSceneObjectManager {
     group.position.set(posX, posY, posZ);
 
     // クオータニオンを適用
-    if (shape.quatX && shape.quatY && shape.quatZ && shape.quatW) {
+    if (!isQuaternionInterpolationActive(shape as ModelShape) && shape.quatX && shape.quatY && shape.quatZ && shape.quatW) {
       const quatX = this.dataProcessor.getLastDataFieldValue(shape.quatX, 0);
       const quatY = this.dataProcessor.getLastDataFieldValue(shape.quatY, 0);
       const quatZ = this.dataProcessor.getLastDataFieldValue(shape.quatZ, 0);

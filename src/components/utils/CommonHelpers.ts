@@ -81,3 +81,22 @@ export const getFieldOptions = (data?: any) => {
   
   return fieldOptions;
 };
+
+export const getTimeFieldOptions = (data?: any) => {
+  if (!data || !data.series) {return [];}
+
+  const fieldOptions: Array<{ label: string; value: string }> = [];
+  data.series.forEach((series: any, seriesIndex: number) => {
+    series.fields.forEach((field: any) => {
+      if (field.name && field.type === FieldType.time) {
+        const dataSourceName = series.name || series.refId || `Query-${seriesIndex + 1}`;
+        fieldOptions.push({
+          label: `${dataSourceName} → ${field.name}`,
+          value: `${dataSourceName}.${field.name}`,
+        });
+      }
+    });
+  });
+
+  return fieldOptions;
+};

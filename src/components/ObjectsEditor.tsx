@@ -13,6 +13,7 @@ import {
 } from '@grafana/ui';
 import { Shape, ShapeType, DataField } from '../types';
 import { DataFieldEditor } from './DataFieldEditor';
+import { getTimeFieldOptions } from './utils/CommonHelpers';
 
 interface ObjectsEditorProps extends StandardEditorProps<Shape[]> {}
 
@@ -77,6 +78,10 @@ const createNewShape = (type: ShapeType, id: string): Shape => {
         quatY: createDefaultDataField(),
         quatZ: createDefaultDataField(),
         quatW: { sourceType: 'const', value: '1' },
+        interpEnabled: false,
+        interpTimeField: '',
+        interpBufferSize: 2,
+        interpMaxExtrapMs: 5000,
         autoScale: 'on' as const,
         unit: 'km' as const // デフォルトは km
       };
@@ -268,6 +273,7 @@ const ObjectsEditor: React.FC<ObjectsEditorProps> = ({ value = [], onChange, con
           // Ideally this should be handled in a useEffect or migration script
           setTimeout(() => updateShape(modelShape), 0);
         }
+        const timeFieldOptions = getTimeFieldOptions(panelData);
         
         return (
           <Stack direction="column" gap={1}>
@@ -357,6 +363,56 @@ const ObjectsEditor: React.FC<ObjectsEditorProps> = ({ value = [], onChange, con
               onChange={(quatW: DataField) => updateShape({ ...modelShape, quatW })}
               data={panelData}
             />
+            <div style={{ marginTop: '8px', fontWeight: 600 }}>Interpolation</div>
+            <InlineField
+              label="Enable"
+              labelWidth={16}
+              tooltip="Keep timestamped quaternions across refreshes and slerp toward the end of the display time range."
+            >
+              <Switch
+                value={modelShape.interpEnabled === true}
+                onChange={(e) => updateShape({ ...modelShape, interpEnabled: e.currentTarget.checked })}
+              />
+            </InlineField>
+            {modelShape.interpEnabled === true && (
+              <>
+                <InlineField label="Time Field" labelWidth={16} tooltip="Leave empty to auto-detect the time field.">
+                  <Combobox
+                    width={30}
+                    options={timeFieldOptions}
+                    value={modelShape.interpTimeField ?? ''}
+                    placeholder="Auto-detect"
+                    isClearable
+                    createCustomValue
+                    onChange={(option) => updateShape({ ...modelShape, interpTimeField: option?.value ?? '' })}
+                  />
+                </InlineField>
+                <InlineField label="Retained Samples" labelWidth={16}>
+                  <Input
+                    type="number"
+                    width={20}
+                    min={2}
+                    value={modelShape.interpBufferSize ?? 2}
+                    onChange={(e) => updateShape({
+                      ...modelShape,
+                      interpBufferSize: Math.max(2, parseInt(e.currentTarget.value, 10) || 2),
+                    })}
+                  />
+                </InlineField>
+                <InlineField label="Max Extrapolation [ms]" labelWidth={16}>
+                  <Input
+                    type="number"
+                    width={20}
+                    min={0}
+                    value={modelShape.interpMaxExtrapMs ?? 5000}
+                    onChange={(e) => updateShape({
+                      ...modelShape,
+                      interpMaxExtrapMs: Math.max(0, parseInt(e.currentTarget.value, 10) || 0),
+                    })}
+                  />
+                </InlineField>
+              </>
+            )}
             <InlineField label="Auto Scale" labelWidth={16}>
               <Switch
                 value={modelShape.autoScale === 'on'}

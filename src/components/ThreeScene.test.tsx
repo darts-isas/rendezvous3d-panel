@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, waitFor } from '@testing-library/react';
-import { PanelData } from '@grafana/data';
+import { FieldType, PanelData } from '@grafana/data';
 import * as THREE from 'three';
-import { CameraSettings } from '../types';
+import { CameraSettings, ModelShape } from '../types';
 import { ThreeScene } from './ThreeScene';
 
 jest.mock('three', () => {
@@ -48,23 +48,37 @@ jest.mock('three/examples/jsm/controls/OrbitControls', () => {
   };
 });
 
-jest.mock('./utils/ThreeSceneObjectManager', () => ({
-  ThreeSceneObjectManager: class ThreeSceneObjectManager {
+jest.mock('./utils/ThreeSceneObjectManager', () => {
+  const { Group } = jest.requireActual('three');
+
+  return { ThreeSceneObjectManager: class ThreeSceneObjectManager {
+    static objects = new Map<string, THREE.Object3D>();
+    private objectsRef: { current: Map<string, THREE.Object3D> };
+
+    constructor(_scene: unknown, _dataProcessor: unknown, objectsRef: { current: Map<string, THREE.Object3D> }) {
+      this.objectsRef = objectsRef;
+    }
+
     setCamera = jest.fn();
     updateViewAngleScaling = jest.fn();
     updateGlobalViewAngleSettings = jest.fn();
     removeObjectsFromScene = jest.fn();
     updateObjects = jest.fn();
-    addObjectToScene = jest.fn();
+    create3DModel = jest.fn(async () => new Group());
+    addObjectToScene = jest.fn((object: THREE.Object3D, id: string) => {
+      this.objectsRef.current.set(id, object);
+      ThreeSceneObjectManager.objects.set(id, object);
+    });
     dispose = jest.fn();
-  },
-}));
+  } };
+});
 
 type MockRenderer = {
   lastCamera?: THREE.PerspectiveCamera;
 };
 
 const EMPTY_OBJECTS: never[] = [];
+let animationCallbacks: FrameRequestCallback[] = [];
 
 const makeData = (values: Record<string, number[]>): PanelData =>
   ({
@@ -107,7 +121,13 @@ const getCamera = (): THREE.PerspectiveCamera => {
 describe('ThreeScene camera position data binding', () => {
   beforeEach(() => {
     (THREE.WebGLRenderer as unknown as { instances: MockRenderer[] }).instances = [];
-    jest.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 1);
+    const Manager = jest.requireMock('./utils/ThreeSceneObjectManager').ThreeSceneObjectManager;
+    Manager.objects.clear();
+    animationCallbacks = [];
+    jest.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      animationCallbacks.push(callback);
+      return animationCallbacks.length;
+    });
     jest.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => undefined);
   });
 
@@ -178,5 +198,70 @@ describe('ThreeScene camera position data binding', () => {
     await waitFor(() => {
       expect(getCamera().position.toArray()).toEqual([9, 8, 7]);
     });
+  });
+
+  it('applies a per-model interpolated quaternion in the animation loop', async () => {
+    const field = (value: string) => ({ sourceType: 'field' as const, value });
+    const constant = (value: string) => ({ sourceType: 'const' as const, value });
+    const model: ModelShape = {
+      id: 'interpolated-model',
+      type: '3dmodel',
+      name: 'Interpolated model',
+      visible: true,
+      url: '',
+      posX: constant('0'),
+      posY: constant('0'),
+      posZ: constant('0'),
+      quatX: field('x'),
+      quatY: field('y'),
+      quatZ: field('z'),
+      quatW: field('w'),
+      interpEnabled: true,
+      interpTimeField: '',
+      interpBufferSize: 2,
+      interpMaxExtrapMs: 5000,
+      autoScale: 'off',
+      unit: 'km',
+    };
+    const q0 = new THREE.Quaternion();
+    const q1 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 2);
+    const interpolationData = {
+      series: [{
+        name: 'attitude',
+        fields: [
+          { name: 'time', type: FieldType.time, values: [0, 1000], config: {} },
+          { name: 'x', type: FieldType.number, values: [q0.x, q1.x], config: {} },
+          { name: 'y', type: FieldType.number, values: [q0.y, q1.y], config: {} },
+          { name: 'z', type: FieldType.number, values: [q0.z, q1.z], config: {} },
+          { name: 'w', type: FieldType.number, values: [q0.w, q1.w], config: {} },
+        ],
+        length: 2,
+      }],
+      timeRange: {
+        raw: { from: '1970-01-01T00:00:00.000Z', to: '1970-01-01T00:00:00.500Z' },
+        from: { valueOf: () => 0 },
+        to: { valueOf: () => 500 },
+      },
+    } as unknown as PanelData;
+
+    render(
+      <ThreeScene
+        width={640}
+        height={480}
+        backgroundColor="#000000"
+        showAxis={false}
+        objects={[model]}
+        data={interpolationData}
+      />
+    );
+
+    const Manager = jest.requireMock('./utils/ThreeSceneObjectManager').ThreeSceneObjectManager;
+    await waitFor(() => expect(Manager.objects.has(model.id)).toBe(true));
+
+    const pendingCallbacks = animationCallbacks.splice(0);
+    pendingCallbacks.forEach((callback) => callback(0));
+
+    const expected = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 4);
+    expect(Manager.objects.get(model.id).quaternion.angleTo(expected)).toBeLessThan(1e-6);
   });
 });
