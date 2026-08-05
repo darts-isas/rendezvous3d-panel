@@ -40,7 +40,8 @@ const createNewShape = (type: ShapeType, id: string): Shape => {
         posY: createDefaultDataField(),
         posZ: createDefaultDataField(),
         autoRadius: 'on' as const,
-        radius: 1
+        radius: 1,
+        castShadow: 'on' as const
       };
     case 'annotation':
       return {
@@ -83,7 +84,9 @@ const createNewShape = (type: ShapeType, id: string): Shape => {
         interpBufferSize: 2,
         interpMaxExtrapMs: 5000,
         autoScale: 'on' as const,
-        unit: 'km' as const // デフォルトは km
+        autoScaleFactor: 1,
+        unit: 'km' as const, // デフォルトは km
+        castShadow: 'on' as const
       };
     default:
       throw new Error(`Unknown shape type: ${type}`);
@@ -152,14 +155,21 @@ const ObjectsEditor: React.FC<ObjectsEditorProps> = ({ value = [], onChange, con
                 <Input
                   type="number"
                   width={20}
+                  suffix="km"
                   value={shape.radius}
                   onChange={(e) => updateShape({ ...shape, radius: parseFloat(e.currentTarget.value) || 1 })}
                 />
               </InlineField>
             )}
+            <InlineField label="Cast Shadow" labelWidth={16}>
+              <Switch
+                value={shape.castShadow !== 'off'}
+                onChange={(e) => updateShape({ ...shape, castShadow: e.currentTarget.checked ? 'on' : 'off' })}
+              />
+            </InlineField>
           </Stack>
         );
-      
+
       case 'annotation':
         return (
           <Stack direction="column" gap={1}>
@@ -363,60 +373,89 @@ const ObjectsEditor: React.FC<ObjectsEditorProps> = ({ value = [], onChange, con
               onChange={(quatW: DataField) => updateShape({ ...modelShape, quatW })}
               data={panelData}
             />
-            <div style={{ marginTop: '8px', fontWeight: 600 }}>Interpolation</div>
-            <InlineField
-              label="Enable"
-              labelWidth={16}
-              tooltip="Keep timestamped quaternions across refreshes and slerp toward the end of the display time range."
-            >
-              <Switch
-                value={modelShape.interpEnabled === true}
-                onChange={(e) => updateShape({ ...modelShape, interpEnabled: e.currentTarget.checked })}
-              />
-            </InlineField>
-            {modelShape.interpEnabled === true && (
-              <>
-                <InlineField label="Time Field" labelWidth={16} tooltip="Leave empty to auto-detect the time field.">
-                  <Combobox
-                    width={30}
-                    options={timeFieldOptions}
-                    value={modelShape.interpTimeField ?? ''}
-                    placeholder="Auto-detect"
-                    isClearable
-                    createCustomValue
-                    onChange={(option) => updateShape({ ...modelShape, interpTimeField: option?.value ?? '' })}
-                  />
-                </InlineField>
-                <InlineField label="Retained Samples" labelWidth={16}>
-                  <Input
-                    type="number"
-                    width={20}
-                    min={2}
-                    value={modelShape.interpBufferSize ?? 2}
-                    onChange={(e) => updateShape({
-                      ...modelShape,
-                      interpBufferSize: Math.max(2, parseInt(e.currentTarget.value, 10) || 2),
-                    })}
-                  />
-                </InlineField>
-                <InlineField label="Max Extrapolation [ms]" labelWidth={16}>
-                  <Input
-                    type="number"
-                    width={20}
-                    min={0}
-                    value={modelShape.interpMaxExtrapMs ?? 5000}
-                    onChange={(e) => updateShape({
-                      ...modelShape,
-                      interpMaxExtrapMs: Math.max(0, parseInt(e.currentTarget.value, 10) || 0),
-                    })}
-                  />
-                </InlineField>
-              </>
-            )}
+            <div style={{
+              border: '1px solid #444',
+              borderRadius: '4px',
+              padding: '12px',
+              marginTop: '8px'
+            }}>
+              <div style={{ fontWeight: 600, marginBottom: '8px' }}>Attitude Interpolation (Quaternion)</div>
+              <InlineField
+                label="Enable"
+                labelWidth={16}
+                tooltip="Keep timestamped quaternions across refreshes and slerp toward the end of the display time range."
+              >
+                <Switch
+                  value={modelShape.interpEnabled === true}
+                  onChange={(e) => updateShape({ ...modelShape, interpEnabled: e.currentTarget.checked })}
+                />
+              </InlineField>
+              {modelShape.interpEnabled === true && (
+                <>
+                  <InlineField label="Time Field" labelWidth={16} tooltip="Leave empty to auto-detect the time field.">
+                    <Combobox
+                      width={30}
+                      options={timeFieldOptions}
+                      value={modelShape.interpTimeField ?? ''}
+                      placeholder="Auto-detect"
+                      isClearable
+                      createCustomValue
+                      onChange={(option) => updateShape({ ...modelShape, interpTimeField: option?.value ?? '' })}
+                    />
+                  </InlineField>
+                  <InlineField label="Retained Samples" labelWidth={16}>
+                    <Input
+                      type="number"
+                      width={20}
+                      min={2}
+                      value={modelShape.interpBufferSize ?? 2}
+                      onChange={(e) => updateShape({
+                        ...modelShape,
+                        interpBufferSize: Math.max(2, parseInt(e.currentTarget.value, 10) || 2),
+                      })}
+                    />
+                  </InlineField>
+                  <InlineField label="Max Extrapolation [ms]" labelWidth={16}>
+                    <Input
+                      type="number"
+                      width={20}
+                      min={0}
+                      value={modelShape.interpMaxExtrapMs ?? 5000}
+                      onChange={(e) => updateShape({
+                        ...modelShape,
+                        interpMaxExtrapMs: Math.max(0, parseInt(e.currentTarget.value, 10) || 0),
+                      })}
+                    />
+                  </InlineField>
+                </>
+              )}
+            </div>
+            <div style={{ fontWeight: 600, marginTop: '12px' }}>Scale</div>
             <InlineField label="Auto Scale" labelWidth={16}>
               <Switch
                 value={modelShape.autoScale === 'on'}
                 onChange={(e) => updateShape({ ...modelShape, autoScale: e.currentTarget.checked ? 'on' : 'off' })}
+              />
+            </InlineField>
+            {modelShape.autoScale === 'on' && (
+              <InlineField
+                label="Auto Scale Factor"
+                labelWidth={16}
+                tooltip="Multiplier applied on top of the automatically computed size."
+              >
+                <Input
+                  type="number"
+                  width={20}
+                  value={modelShape.autoScaleFactor ?? 1}
+                  onChange={(e) => updateShape({ ...modelShape, autoScaleFactor: parseFloat(e.currentTarget.value) || 1 })}
+                  placeholder="1.0"
+                />
+              </InlineField>
+            )}
+            <InlineField label="Cast Shadow" labelWidth={16}>
+              <Switch
+                value={modelShape.castShadow !== 'off'}
+                onChange={(e) => updateShape({ ...modelShape, castShadow: e.currentTarget.checked ? 'on' : 'off' })}
               />
             </InlineField>
           </Stack>

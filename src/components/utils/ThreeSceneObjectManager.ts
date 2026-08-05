@@ -117,7 +117,7 @@ export class ThreeSceneObjectManager {
     // 前面(表面)のみが光を遮蔽し、裏面は透過するようにする
     material.shadowSide = THREE.FrontSide;
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.castShadow = true;
+    mesh.castShadow = shape.castShadow !== 'off';
     mesh.receiveShadow = true;
 
     mesh.position.set(posX, posY, posZ);
@@ -443,7 +443,7 @@ export class ThreeSceneObjectManager {
               });
 
               // シャドウ設定を調整
-              child.castShadow = true;
+              child.castShadow = shape.castShadow !== 'off';
               child.receiveShadow = true;
             }
           });
@@ -542,6 +542,7 @@ export class ThreeSceneObjectManager {
             this.setSphereGeometryRadius(existingObject, radius);
             existingObject.scale.setScalar(1);
             existingObject.userData.originalSize = radius * 2;
+            existingObject.castShadow = shape.castShadow !== 'off';
           }
 
           existingObject.userData.viewAngleConfig = this.createViewAngleConfig(shape.autoRadius === 'on');
@@ -593,7 +594,14 @@ export class ThreeSceneObjectManager {
           }
           
           this.applyModelSizing(existingObject, shape);
-          
+
+          // シャドウ設定を更新
+          existingObject.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+              child.castShadow = shape.castShadow !== 'off';
+            }
+          });
+
           // URLを更新
           existingObject.userData.originalUrl = newUrl;
           
@@ -1008,7 +1016,7 @@ export class ThreeSceneObjectManager {
     material.shadowSide = THREE.FrontSide;
 
     const cube = new THREE.Mesh(geometry, material);
-    cube.castShadow = true;
+    cube.castShadow = shape.castShadow !== 'off';
     cube.receiveShadow = true;
     group.add(cube);
 

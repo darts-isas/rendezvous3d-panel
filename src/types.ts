@@ -23,6 +23,8 @@ export interface SphereShape extends BaseShape {
   radius?: number; // autoRadius が 'off' の場合のみ使用
   /** @deprecated Existing dashboards only. New spheres use View Angle Scaling without a per-object factor. */
   autoScaleFactor?: number;
+  /** Whether this sphere casts a shadow. Default: 'on'. */
+  castShadow?: 'on' | 'off';
 }
 
 export interface AnnotationShape extends BaseShape {
@@ -68,9 +70,11 @@ export interface ModelShape extends BaseShape {
   autoScale: 'on' | 'off';
   /** @deprecated Existing dashboards only. New models use their native size. */
   scale?: number;
-  /** @deprecated Existing dashboards only. New models use View Angle Scaling without a per-object factor. */
+  /** Multiplier applied on top of the automatically computed size when autoScale is 'on'. Default: 1. */
   autoScaleFactor?: number;
   unit?: 'm' | 'km'; // モデルの単位設定（デフォルト: 'km'）
+  /** Whether this model casts a shadow. Default: 'on'. */
+  castShadow?: 'on' | 'off';
 }
 
 export type Shape = SphereShape | AnnotationShape | PolylineShape | ModelShape;
