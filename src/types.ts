@@ -115,12 +115,9 @@ export interface CameraSettings {
   showResetCameraButton?: boolean;
 }
 
-export type PointLightDecayMode = 'none' | 'linear' | 'inverseSquare';
-
 export interface PointLightSettings {
   enabled: 'on' | 'off';
   intensity: number;
-  decayMode: PointLightDecayMode; // three.js の PointLight.decay = 0 / 1 / 2 に対応
   posX: DataField;
   posY: DataField;
   posZ: DataField;

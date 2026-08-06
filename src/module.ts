@@ -44,7 +44,7 @@ export const plugin = new PanelPlugin<Rendezvous3DPanelOptions>(Rendezvous3DPane
     .addRadio({
       path: 'pointLight.enabled',
       name: 'Point Light',
-      description: 'Enable a single point light source in the scene. Its front faces block the light; back faces let it pass through.',
+      description: 'Enable a directional light source in the scene, aimed from the configured position toward the camera target. Its front faces block the light; back faces let it pass through.',
       defaultValue: 'off',
       settings: {
         options: [
@@ -57,25 +57,10 @@ export const plugin = new PanelPlugin<Rendezvous3DPanelOptions>(Rendezvous3DPane
     .addNumberInput({
       path: 'pointLight.intensity',
       name: 'Point Light Intensity',
-      description: 'Point light intensity. With decay enabled, values can need to scale up to 10^8+ at large distances (e.g. inverse-square decay at distance 1e4 needs intensity ~1e8 to be visible).',
+      description: 'Light intensity.',
       defaultValue: 1.0,
       settings: {
         min: 0,
-      },
-      category: ['Lighting Settings'],
-      showIf: (config: Rendezvous3DPanelOptions) => config.pointLight?.enabled === 'on',
-    })
-    .addRadio({
-      path: 'pointLight.decayMode',
-      name: 'Point Light Decay',
-      description: 'How intensity falls off with distance: None (no falloff), Linear (1/d), Inverse Square (1/d², physically accurate)',
-      defaultValue: 'none',
-      settings: {
-        options: [
-          { value: 'none', label: 'None' },
-          { value: 'linear', label: 'Linear' },
-          { value: 'inverseSquare', label: 'Inverse Square' },
-        ],
       },
       category: ['Lighting Settings'],
       showIf: (config: Rendezvous3DPanelOptions) => config.pointLight?.enabled === 'on',

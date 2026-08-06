@@ -142,7 +142,6 @@ export const Rendezvous3DPanel: React.FC<Props> = ({ options, data, width, heigh
         pointLight={{
           enabled: 'off',
           intensity: 1.0,
-          decayMode: 'none',
           posX: { sourceType: 'const', value: '0' },
           posY: { sourceType: 'const', value: '0' },
           posZ: { sourceType: 'const', value: '0' },
