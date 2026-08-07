@@ -63,8 +63,9 @@ export interface ModelShape extends BaseShape {
   interpTimeField?: string;
   /** Maximum number of timestamped quaternion samples retained across refreshes. */
   interpBufferSize?: number;
-  /** Maximum time beyond the newest sample to extrapolate. */
-  interpMaxExtrapMs?: number;
+  /** When a new sample shifts the extrapolation basis, blend into the corrected orientation
+   * over this many ms instead of snapping. 0 disables blending. */
+  interpCatchUpMs?: number;
   autoScale: 'on' | 'off';
   /** @deprecated Existing dashboards only. New models use their native size. */
   scale?: number;

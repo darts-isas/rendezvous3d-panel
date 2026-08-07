@@ -219,7 +219,7 @@ describe('ThreeScene camera position data binding', () => {
       interpEnabled: true,
       interpTimeField: '',
       interpBufferSize: 2,
-      interpMaxExtrapMs: 5000,
+      interpCatchUpMs: 300,
       autoScale: 'off',
       unit: 'km',
     };

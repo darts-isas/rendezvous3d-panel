@@ -81,7 +81,7 @@ const createNewShape = (type: ShapeType, id: string): Shape => {
         interpEnabled: false,
         interpTimeField: '',
         interpBufferSize: 2,
-        interpMaxExtrapMs: 5000,
+        interpCatchUpMs: 300,
         autoScale: 'on' as const,
         autoScaleFactor: 1,
         unit: 'km' as const // デフォルトは km
@@ -407,15 +407,19 @@ const ObjectsEditor: React.FC<ObjectsEditorProps> = ({ value = [], onChange, con
                       })}
                     />
                   </InlineField>
-                  <InlineField label="Max Extrapolation [ms]" labelWidth={16}>
+                  <InlineField
+                    label="Catch-up Blend [ms]"
+                    labelWidth={16}
+                    tooltip="When a new sample shifts the extrapolation basis, blend into the corrected orientation over this many ms instead of snapping. 0 disables blending."
+                  >
                     <Input
                       type="number"
                       width={20}
                       min={0}
-                      value={modelShape.interpMaxExtrapMs ?? 5000}
+                      value={modelShape.interpCatchUpMs ?? 300}
                       onChange={(e) => updateShape({
                         ...modelShape,
-                        interpMaxExtrapMs: Math.max(0, parseInt(e.currentTarget.value, 10) || 0),
+                        interpCatchUpMs: Math.max(0, parseInt(e.currentTarget.value, 10) || 0),
                       })}
                     />
                   </InlineField>

@@ -43,26 +43,38 @@ export const isQuaternionInterpolationActive = (shape: ModelShape): boolean =>
   shape.quatX?.sourceType === 'field' && shape.quatY?.sourceType === 'field' &&
   shape.quatZ?.sourceType === 'field' && shape.quatW?.sourceType === 'field';
 
+// Slerp between a fixed pair, extrapolating past b (or before a) along the same great
+// circle. THREE.Quaternion.slerp implements the great-circle formula, so u outside [0, 1]
+// still extrapolates correctly while keeping the result unit length. Exposed separately from
+// sampleQuaternionAt so callers can keep riding a pair that has since fallen out of the live
+// buffer (e.g. to crossfade away from it during a catch-up blend).
+export const slerpPair = (a: QuaternionSample, b: QuaternionSample, targetMs: number): THREE.Quaternion => {
+  const dt = b.t - a.t;
+  if (dt < 1) {return b.q.clone();}
+  const ratio = Math.max(0, (targetMs - a.t) / dt);
+  return a.q.clone().slerp(b.q, ratio);
+};
+
+// Sample a quaternion buffer (sorted by t ascending) at targetMs, slerping between the
+// bracketing pair. Extrapolation past the last sample is unbounded: it keeps riding the last
+// two samples' rate indefinitely until a new sample arrives.
 export const sampleQuaternionAt = (
   buffer: QuaternionSample[],
-  targetMs: number,
-  maxExtrapMs: number
+  targetMs: number
 ): THREE.Quaternion | null => {
   if (buffer.length === 0) {return null;}
   if (buffer.length === 1) {return buffer[0].q.clone();}
 
   const last = buffer[buffer.length - 1];
-  const extrapolationLimit = Math.max(0, Number(maxExtrapMs) || 0);
-  const effectiveTarget = Math.min(targetMs, last.t + extrapolationLimit);
   let a = buffer[0];
   let b = buffer[1];
 
-  if (effectiveTarget >= last.t) {
+  if (targetMs >= last.t) {
     a = buffer[buffer.length - 2];
     b = last;
-  } else if (effectiveTarget > buffer[0].t) {
+  } else if (targetMs > buffer[0].t) {
     for (let index = 0; index < buffer.length - 1; index++) {
-      if (buffer[index].t <= effectiveTarget && effectiveTarget <= buffer[index + 1].t) {
+      if (buffer[index].t <= targetMs && targetMs <= buffer[index + 1].t) {
         a = buffer[index];
         b = buffer[index + 1];
         break;
@@ -70,10 +82,7 @@ export const sampleQuaternionAt = (
     }
   }
 
-  const dt = b.t - a.t;
-  if (dt < 1) {return b.q.clone();}
-  const ratio = Math.max(0, (effectiveTarget - a.t) / dt);
-  return a.q.clone().slerp(b.q, ratio);
+  return slerpPair(a, b, targetMs);
 };
 
 export const collectQuaternionSamples = (
@@ -125,7 +134,17 @@ export const collectQuaternionSamples = (
   return samples.sort((a, b) => a.t - b.t);
 };
 
-type BufferEntry = { key: string; samples: QuaternionSample[] };
+type BufferEntry = {
+  key: string;
+  samples: QuaternionSample[];
+  // The (n-2, n-1) pair backing extrapolation, snapshotted whenever the buffer tail advances,
+  // so the next arrival can freeze it as the catch-up blend's starting trajectory.
+  lastPair: [QuaternionSample, QuaternionSample] | null;
+  // The pair frozen at the start of an active catch-up blend, and the blend's time window.
+  catchUpFrom: [QuaternionSample, QuaternionSample] | null;
+  catchUpStart: number;
+  catchUpDeadline: number;
+};
 
 export class QuaternionInterpolationStore {
   private entries = new Map<string, BufferEntry>();
@@ -143,7 +162,7 @@ export class QuaternionInterpolationStore {
     ].join('|');
     let entry = this.entries.get(shape.id);
     if (!entry || entry.key !== key) {
-      entry = { key, samples: [] };
+      entry = { key, samples: [], lastPair: null, catchUpFrom: null, catchUpStart: 0, catchUpDeadline: 0 };
       this.entries.set(shape.id, entry);
     }
 
@@ -159,17 +178,41 @@ export class QuaternionInterpolationStore {
     const newestIncoming = incoming[incoming.length - 1].t;
     const newestRetained = entry.samples[entry.samples.length - 1]?.t;
     if (newestRetained !== undefined && newestIncoming < newestRetained) {
+      // Time range moved/zoomed into the past: discard the stale buffer and blend state.
       entry.samples = [...incoming];
+      entry.lastPair = null;
+      entry.catchUpFrom = null;
     } else {
-      entry.samples.push(...incoming.filter((sample) => newestRetained === undefined || sample.t > newestRetained));
+      const toAppend = incoming.filter((sample) => newestRetained === undefined || sample.t > newestRetained);
+      if (toAppend.length !== 0) {
+        const catchUpMs = Math.max(0, Number(shape.interpCatchUpMs) || 0);
+        if (entry.lastPair && catchUpMs > 0) {
+          entry.catchUpFrom = entry.lastPair;
+          entry.catchUpStart = fallbackTimeMs;
+          entry.catchUpDeadline = fallbackTimeMs + catchUpMs;
+        }
+        entry.samples.push(...toAppend);
+      }
     }
     if (entry.samples.length > bufferSize) {
       entry.samples.splice(0, entry.samples.length - bufferSize);
     }
+    const n = entry.samples.length;
+    entry.lastPair = n >= 2 ? [entry.samples[n - 2], entry.samples[n - 1]] : null;
   }
 
-  sample(id: string, targetMs: number, maxExtrapMs: number): THREE.Quaternion | null {
-    return sampleQuaternionAt(this.entries.get(id)?.samples ?? [], targetMs, maxExtrapMs);
+  sample(id: string, targetMs: number, nowMs: number): THREE.Quaternion | null {
+    const entry = this.entries.get(id);
+    if (!entry) {return null;}
+
+    const qNew = sampleQuaternionAt(entry.samples, targetMs);
+    if (!qNew || !entry.catchUpFrom || nowMs >= entry.catchUpDeadline) {return qNew;}
+
+    const [a, b] = entry.catchUpFrom;
+    const qOld = slerpPair(a, b, targetMs);
+    const raw = (nowMs - entry.catchUpStart) / (entry.catchUpDeadline - entry.catchUpStart);
+    const ratio = raw * raw * (3 - 2 * raw); // smoothstep: eases in/out at both ends
+    return qOld.slerp(qNew, ratio);
   }
 
   getSamples(id: string): QuaternionSample[] {

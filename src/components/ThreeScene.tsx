@@ -54,7 +54,7 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
   const [currentDistance, setCurrentDistance] = useState<number>(0);
   const [currentPosition, setCurrentPosition] = useState<THREE.Vector3>(new THREE.Vector3());
   const [interpolationStore] = useState(() => new QuaternionInterpolationStore());
-  const interpolationConfigRef = useRef<Map<string, number>>(new Map());
+  const interpolationConfigRef = useRef<Set<string>>(new Set());
   const interpolationTimeRef = useRef<{ timeRange: PanelData['timeRange'] | undefined; arrivedAt: number }>({
     timeRange: data?.timeRange,
     arrivedAt: Date.now(),
@@ -66,10 +66,10 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
     interpolationTimeRef.current.arrivedAt = Date.now();
   }
   interpolationTimeRef.current.timeRange = data?.timeRange;
-  const interpolationConfig = new Map<string, number>();
+  const interpolationConfig = new Set<string>();
   objects.forEach((shape) => {
     if (shape.type === '3dmodel' && isQuaternionInterpolationActive(shape)) {
-      interpolationConfig.set(shape.id, Math.max(0, Number(shape.interpMaxExtrapMs) || 0));
+      interpolationConfig.add(shape.id);
     }
   });
   interpolationConfigRef.current = interpolationConfig;
@@ -137,14 +137,15 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
       objectManager.updateViewAngleScaling();
     }
 
+    const now = Date.now();
     const interpolationTarget = getInterpolationTargetMs(
       interpolationTimeRef.current.timeRange,
       interpolationTimeRef.current.arrivedAt,
-      Date.now()
+      now
     );
-    interpolationConfigRef.current.forEach((maxExtrapMs, id) => {
+    interpolationConfigRef.current.forEach((id) => {
       const object = objectsRef.current.get(id);
-      const quaternion = interpolationStore.sample(id, interpolationTarget, maxExtrapMs);
+      const quaternion = interpolationStore.sample(id, interpolationTarget, now);
       if (object && quaternion) {
         object.quaternion.copy(quaternion);
       }
@@ -457,6 +458,7 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
       shape.interpEnabled,
       shape.interpTimeField,
       shape.interpBufferSize,
+      shape.interpCatchUpMs,
       shape.quatX?.sourceType,
       shape.quatX?.value,
       shape.quatY?.sourceType,

@@ -80,9 +80,9 @@ Interpolation is configured independently for each 3D model. It is active only w
 - `Enable`: Retain timestamped quaternions across refreshes and slerp toward the end of Grafana's displayed time range.
 - `Time Field`: Select the sample timestamp field. Leave it empty to auto-detect the time field in the frame containing all four quaternion fields. Field names may be written as `Series.Field`, `[Series]{Field}`, or a bare field name.
 - `Retained Samples`: Fixed history size per model. The default is `2`, which provides constant-angular-velocity extrapolation from the newest pair.
-- `Max Extrapolation [ms]`: Limit motion after the newest sample. `0` disables extrapolation; the default is `5000` ms.
+- `Catch-up Blend [ms]`: When a new sample shifts the extrapolation basis, blend into the corrected orientation over this many ms instead of snapping. `0` disables blending; the default is `300` ms.
 
-Samples are validated, normalized, sorted by time, and retained separately for each model. Moving the displayed range into the past or changing the selected fields resets that model's history. Relative ranges ending in `now` continue advancing with wall time; absolute ranges stay fixed at their configured end time.
+Samples are validated, normalized, sorted by time, and retained separately for each model. Moving the displayed range into the past or changing the selected fields resets that model's history. Relative ranges ending in `now` continue advancing with wall time; absolute ranges stay fixed at their configured end time. Extrapolation past the newest sample is unbounded, riding the last two samples' rate at constant angular velocity until a new sample arrives; the catch-up blend keeps that correction from ever snapping.
 
 ### 8. Polyline objects
 <img src="screenshots/menu8_polyline.png" alt="Polyline configuration" width="250" />

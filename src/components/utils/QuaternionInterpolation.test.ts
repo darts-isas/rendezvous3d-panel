@@ -7,6 +7,7 @@ import {
   QuaternionInterpolationStore,
   QuaternionSample,
   sampleQuaternionAt,
+  slerpPair,
 } from './QuaternionInterpolation';
 
 const rotationY = (degrees: number) =>
@@ -52,7 +53,7 @@ const makeModel = (id: string, overrides: Partial<ModelShape> = {}): ModelShape 
   interpEnabled: true,
   interpTimeField: '',
   interpBufferSize: 2,
-  interpMaxExtrapMs: 5000,
+  interpCatchUpMs: 300,
   autoScale: 'on',
   unit: 'km',
   ...overrides,
@@ -64,27 +65,57 @@ describe('sampleQuaternionAt', () => {
       { t: 0, q: rotationY(0) },
       { t: 1000, q: rotationY(90) },
     ];
-    expect(sampleQuaternionAt(samples, 500, 5000)!.angleTo(rotationY(45))).toBeLessThan(1e-6);
+    expect(sampleQuaternionAt(samples, 500)!.angleTo(rotationY(45))).toBeLessThan(1e-6);
   });
 
-  it('extrapolates while unit length and clamps at the configured limit', () => {
+  it('extrapolates without bound while staying unit length', () => {
     const samples: QuaternionSample[] = [
       { t: 0, q: rotationY(0) },
       { t: 1000, q: rotationY(90) },
     ];
-    const extrapolated = sampleQuaternionAt(samples, 2000, 5000)!;
+    const extrapolated = sampleQuaternionAt(samples, 2000)!;
     expect(extrapolated.angleTo(rotationY(180))).toBeLessThan(1e-6);
     expect(extrapolated.length()).toBeCloseTo(1);
-    expect(sampleQuaternionAt(samples, 5000, 0)!.angleTo(rotationY(90))).toBeLessThan(1e-6);
+
+    // u = (5000-0)/1000 = 5, so this rides 5x the a->b rotation: 450°, equivalent to 90°.
+    const farExtrapolated = sampleQuaternionAt(samples, 5000)!;
+    expect(farExtrapolated.angleTo(rotationY(90))).toBeLessThan(1e-6);
+    expect(farExtrapolated.length()).toBeCloseTo(1);
   });
 
   it('handles empty, single, and duplicate-time buffers', () => {
-    expect(sampleQuaternionAt([], 0, 1000)).toBeNull();
-    expect(sampleQuaternionAt([{ t: 0, q: rotationY(30) }], 1000, 1000)!.angleTo(rotationY(30))).toBeLessThan(1e-6);
+    expect(sampleQuaternionAt([], 0)).toBeNull();
+    expect(sampleQuaternionAt([{ t: 0, q: rotationY(30) }], 1000)!.angleTo(rotationY(30))).toBeLessThan(1e-6);
     expect(sampleQuaternionAt([
       { t: 1000, q: rotationY(0) },
       { t: 1000, q: rotationY(90) },
-    ], 1000, 1000)!.angleTo(rotationY(90))).toBeLessThan(1e-6);
+    ], 1000)!.angleTo(rotationY(90))).toBeLessThan(1e-6);
+  });
+});
+
+describe('slerpPair', () => {
+  it('interpolates between two samples', () => {
+    const a: QuaternionSample = { t: 0, q: rotationY(0) };
+    const b: QuaternionSample = { t: 1000, q: rotationY(90) };
+    expect(slerpPair(a, b, 500).angleTo(rotationY(45))).toBeLessThan(1e-6);
+  });
+
+  it('extrapolates past b without an upper clamp', () => {
+    const a: QuaternionSample = { t: 0, q: rotationY(0) };
+    const b: QuaternionSample = { t: 1000, q: rotationY(90) };
+    const extrapolated = slerpPair(a, b, 3000);
+    expect(extrapolated.angleTo(rotationY(270))).toBeLessThan(1e-6);
+    expect(extrapolated.length()).toBeCloseTo(1);
+  });
+
+  it('clamps below a (u < 0) and returns b as-is when dt < 1', () => {
+    const a: QuaternionSample = { t: 1000, q: rotationY(0) };
+    const b: QuaternionSample = { t: 1000, q: rotationY(90) };
+    expect(slerpPair(a, b, 0).angleTo(rotationY(90))).toBeLessThan(1e-6);
+
+    const c: QuaternionSample = { t: 0, q: rotationY(0) };
+    const d: QuaternionSample = { t: 1000, q: rotationY(90) };
+    expect(slerpPair(c, d, -1000).angleTo(rotationY(0))).toBeLessThan(1e-6);
   });
 });
 
@@ -164,6 +195,31 @@ describe('QuaternionInterpolationStore', () => {
     store.update(model, [quaternionFrame('A', [1000], [rotationY(0)])], 0);
     store.update({ ...model, quatW: constant('1') }, [], 0);
     expect(store.getSamples('model')).toEqual([]);
+  });
+
+  it('crossfades from the frozen extrapolation pair into the corrected trajectory over the catch-up window', () => {
+    const store = new QuaternionInterpolationStore();
+    const model = makeModel('m', { interpCatchUpMs: 300 });
+    store.update(model, [quaternionFrame('A', [0, 1000], [rotationY(0), rotationY(90)])], 1000);
+    // A new sample arrives at t=2000 showing the object actually stopped rotating at t=1000,
+    // shifting the extrapolation basis. Arrival ("now") is also 2000.
+    store.update(model, [quaternionFrame('A', [0, 1000, 2000], [rotationY(0), rotationY(90), rotationY(90)])], 2000);
+
+    // At the start of the blend window, the old (frozen) extrapolation still dominates.
+    expect(store.sample('m', 2000, 2000)!.angleTo(rotationY(180))).toBeLessThan(1e-6);
+    // Halfway through the 300ms window, smoothstep(0.5) = 0.5: the midpoint between old and new.
+    expect(store.sample('m', 2000, 2150)!.angleTo(rotationY(135))).toBeLessThan(1e-6);
+    // Once the window elapses, the corrected trajectory is used directly.
+    expect(store.sample('m', 2000, 2300)!.angleTo(rotationY(90))).toBeLessThan(1e-6);
+  });
+
+  it('disables the catch-up blend and snaps immediately when interpCatchUpMs is 0', () => {
+    const store = new QuaternionInterpolationStore();
+    const model = makeModel('m', { interpCatchUpMs: 0 });
+    store.update(model, [quaternionFrame('A', [0, 1000], [rotationY(0), rotationY(90)])], 1000);
+    store.update(model, [quaternionFrame('A', [0, 1000, 2000], [rotationY(0), rotationY(90), rotationY(90)])], 2000);
+
+    expect(store.sample('m', 2000, 2000)!.angleTo(rotationY(90))).toBeLessThan(1e-6);
   });
 });
 
