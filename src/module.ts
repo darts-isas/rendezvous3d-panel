@@ -44,7 +44,7 @@ export const plugin = new PanelPlugin<Rendezvous3DPanelOptions>(Rendezvous3DPane
     .addRadio({
       path: 'pointLight.enabled',
       name: 'Point Light',
-      description: 'Enable a directional light source in the scene, aimed from the configured position toward the camera target. Its front faces block the light; back faces let it pass through.',
+      description: 'Enable a single point light source in the scene, radiating from the configured position.',
       defaultValue: 'off',
       settings: {
         options: [

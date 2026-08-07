@@ -114,11 +114,7 @@ export class ThreeSceneObjectManager {
 
     const geometry = new THREE.SphereGeometry(radius, 32, 32);
     const material = new THREE.MeshLambertMaterial({ color: shape.color || '#ff0000' });
-    // 前面(表面)のみが光を遮蔽し、裏面は透過するようにする
-    material.shadowSide = THREE.FrontSide;
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.castShadow = shape.castShadow !== 'off';
-    mesh.receiveShadow = true;
 
     mesh.position.set(posX, posY, posZ);
     mesh.name = shape.name;
@@ -433,18 +429,6 @@ export class ThreeSceneObjectManager {
                 //   child.material.color.multiplyScalar(1.05);
                 // }
               }
-
-              // 前面(表面)のみが光を遮蔽し、裏面は透過するようにする
-              const materials = Array.isArray(child.material) ? child.material : [child.material];
-              materials.forEach((mat) => {
-                if (mat) {
-                  mat.shadowSide = THREE.FrontSide;
-                }
-              });
-
-              // シャドウ設定を調整
-              child.castShadow = shape.castShadow !== 'off';
-              child.receiveShadow = true;
             }
           });
 
@@ -542,7 +526,6 @@ export class ThreeSceneObjectManager {
             this.setSphereGeometryRadius(existingObject, radius);
             existingObject.scale.setScalar(1);
             existingObject.userData.originalSize = radius * 2;
-            existingObject.castShadow = shape.castShadow !== 'off';
           }
 
           existingObject.userData.viewAngleConfig = this.createViewAngleConfig(shape.autoRadius === 'on');
@@ -594,13 +577,6 @@ export class ThreeSceneObjectManager {
           }
           
           this.applyModelSizing(existingObject, shape);
-
-          // シャドウ設定を更新
-          existingObject.traverse((child) => {
-            if (child instanceof THREE.Mesh) {
-              child.castShadow = shape.castShadow !== 'off';
-            }
-          });
 
           // URLを更新
           existingObject.userData.originalUrl = newUrl;
@@ -1012,12 +988,7 @@ export class ThreeSceneObjectManager {
       transparent: true,
       opacity: 0.8
     });
-    // 前面(表面)のみが光を遮蔽し、裏面は透過するようにする
-    material.shadowSide = THREE.FrontSide;
-
     const cube = new THREE.Mesh(geometry, material);
-    cube.castShadow = shape.castShadow !== 'off';
-    cube.receiveShadow = true;
     group.add(cube);
 
     // 位置を設定

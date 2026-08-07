@@ -40,8 +40,7 @@ const createNewShape = (type: ShapeType, id: string): Shape => {
         posY: createDefaultDataField(),
         posZ: createDefaultDataField(),
         autoRadius: 'on' as const,
-        radius: 1,
-        castShadow: 'on' as const
+        radius: 1
       };
     case 'annotation':
       return {
@@ -85,8 +84,7 @@ const createNewShape = (type: ShapeType, id: string): Shape => {
         interpMaxExtrapMs: 5000,
         autoScale: 'on' as const,
         autoScaleFactor: 1,
-        unit: 'km' as const, // デフォルトは km
-        castShadow: 'on' as const
+        unit: 'km' as const // デフォルトは km
       };
     default:
       throw new Error(`Unknown shape type: ${type}`);
@@ -161,12 +159,6 @@ const ObjectsEditor: React.FC<ObjectsEditorProps> = ({ value = [], onChange, con
                 />
               </InlineField>
             )}
-            <InlineField label="Cast Shadow" labelWidth={16}>
-              <Switch
-                value={shape.castShadow !== 'off'}
-                onChange={(e) => updateShape({ ...shape, castShadow: e.currentTarget.checked ? 'on' : 'off' })}
-              />
-            </InlineField>
           </Stack>
         );
 
@@ -452,12 +444,6 @@ const ObjectsEditor: React.FC<ObjectsEditorProps> = ({ value = [], onChange, con
                 />
               </InlineField>
             )}
-            <InlineField label="Cast Shadow" labelWidth={16}>
-              <Switch
-                value={modelShape.castShadow !== 'off'}
-                onChange={(e) => updateShape({ ...modelShape, castShadow: e.currentTarget.checked ? 'on' : 'off' })}
-              />
-            </InlineField>
           </Stack>
         );
       }

@@ -26,15 +26,6 @@ interface ThreeSceneProps {
   pointLight?: PointLightSettings;
 }
 
-// 並行光源のシャドウは、カメラ注視点を中心とした Orthographic カメラで ±R の範囲だけをカバーする。
-// R をカメラ距離に追従させることで、テクセルサイズが光源距離 L に依存しなくなる
-// (点光源の cube シャドウは fov 90° 固定のため、視野角一定スケーリングされた
-// オブジェクトの見かけサイズに対する分解能が L に比例して劣化し、太陽系スケールでは影が消える)。
-const SHADOW_REGION_MARGIN = 1.2; // 視錐台外周を包含する余裕
-const SHADOW_LIGHT_DISTANCE = 2.0; // ライトを注視点から R の何倍離すか（Orthographic深度のfloat32桁落け回避）
-const SHADOW_NEAR_RATIO = 0.1; // near = R * この値
-const SHADOW_FAR_RATIO = 4.0; // far = R * この値
-
 export const ThreeScene: React.FC<ThreeSceneProps> = ({
   width,
   height,
@@ -59,11 +50,7 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
   const objectsRef = useRef<Map<string, THREE.Object3D>>(new Map());
   const distanceDisplayRef = useRef<HTMLDivElement>(null);
   const ambientLightRef = useRef<THREE.AmbientLight>();
-  const pointLightRef = useRef<THREE.DirectionalLight>();
-  // pointLight設定で指定された光源位置（並行光の方向の起点）。実際のlight.positionは
-  // シャドウカメラの精度確保のため毎フレーム注視点付近まで引き寄せて上書きするので、
-  // 設定値そのものはこちらに保持する。
-  const pointLightConfigPosRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 0, 0));
+  const pointLightRef = useRef<THREE.PointLight>();
   const [currentDistance, setCurrentDistance] = useState<number>(0);
   const [currentPosition, setCurrentPosition] = useState<THREE.Vector3>(new THREE.Vector3());
   const [interpolationStore] = useState(() => new QuaternionInterpolationStore());
@@ -138,61 +125,6 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
 
 
   // Animation loop
-  // 並行光源（点光源設定のUIを流用）のシャドウカメラをカメラ注視点に追従させる。
-  // 太陽系スケールの座標のまま惑星・衛星周辺にズームしても、シャドウの分解能が
-  // カメラ距離ベースで一定に保たれるようにするため、視野角ベースのスケーリングと
-  // 同様に毎フレーム再計算する。
-  const updateShadowLight = useCallback(() => {
-    const light = pointLightRef.current;
-    const camera = cameraRef.current;
-    if (!light || !camera || !light.visible) {
-      return;
-    }
-
-    // 注視点解決（距離表示ロジックと同じ規則: targetObjectId未指定時は原点）
-    let targetPosition = new THREE.Vector3(0, 0, 0);
-    if (targetObjectId !== 'origin') {
-      const targetObject = objectsRef.current.get(targetObjectId);
-      if (targetObject) {
-        targetPosition = targetObject.position;
-      }
-    }
-
-    // 指定された光源位置 → 注視点 の方向。並行光の向きはこれだけで決まる
-    const direction = new THREE.Vector3().subVectors(targetPosition, pointLightConfigPosRef.current);
-    if (direction.lengthSq() === 0) {
-      direction.set(0, 0, -1);
-    }
-    direction.normalize();
-
-    // 画面に映る範囲を包含する半径をカメラ距離から近似
-    const distanceToTarget = camera.position.distanceTo(targetPosition);
-    const halfFovRad = THREE.MathUtils.degToRad(camera.fov / 2);
-    const region = Math.max(
-      distanceToTarget * Math.tan(halfFovRad) * Math.hypot(1, camera.aspect) * SHADOW_REGION_MARGIN,
-      1e-6
-    );
-
-    // ライトを注視点の近くへ引き寄せる。並行光の陰影は方向だけで決まるため見た目は変わらず、
-    // Orthographic投影のfloat32桁落ち（光源が遠すぎることによる精度崩壊）だけが解消される
-    light.position.copy(targetPosition).addScaledVector(direction, -region * SHADOW_LIGHT_DISTANCE);
-    light.target.position.copy(targetPosition);
-    light.target.updateMatrixWorld();
-
-    const shadowCamera = light.shadow.camera;
-    const near = region * SHADOW_NEAR_RATIO;
-    const far = region * SHADOW_FAR_RATIO;
-    if (shadowCamera.right !== region || shadowCamera.near !== near || shadowCamera.far !== far) {
-      shadowCamera.left = -region;
-      shadowCamera.right = region;
-      shadowCamera.top = region;
-      shadowCamera.bottom = -region;
-      shadowCamera.near = near;
-      shadowCamera.far = far;
-      shadowCamera.updateProjectionMatrix();
-    }
-  }, [targetObjectId]);
-
   const animate = useCallback(() => {
     if (!rendererRef.current || !sceneRef.current || !cameraRef.current || !controlsRef.current) {
       return;
@@ -204,8 +136,6 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
     if (objectManager) {
       objectManager.updateViewAngleScaling();
     }
-
-    updateShadowLight();
 
     const interpolationTarget = getInterpolationTargetMs(
       interpolationTimeRef.current.timeRange,
@@ -238,7 +168,7 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
     
     rendererRef.current.render(sceneRef.current, cameraRef.current);
     animationIdRef.current = requestAnimationFrame(animate);
-  }, [objectManager, cameraSettings?.showPositionAndDistance, targetObjectId, interpolationStore, updateShadowLight]);
+  }, [objectManager, cameraSettings?.showPositionAndDistance, targetObjectId, interpolationStore]);
 
   // Update objects based on shape configuration
   const updateObjects = useCallback(async () => {
@@ -346,9 +276,7 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
       // Renderer setup
       const renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setSize(width, height);
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      
+
       // トーンマッピングを調整
       renderer.toneMapping = THREE.NoToneMapping;
       renderer.toneMappingExposure = 1.0;
@@ -369,16 +297,10 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
       scene.add(ambientLight);
       ambientLightRef.current = ambientLight;
 
-      // 点光源（実体は並行光源）の設定（有効状態・強度・位置は updateLighting / 専用effectで更新）
-      // シャドウカメラの left/right/top/bottom/near/far はカメラ注視点に追従して毎フレーム更新する
-      // （updateShadowLight、animateループ内）。
-      const pointLightObj = new THREE.DirectionalLight(0xffffff, 0);
+      // 点光源の設定（有効状態・強度・位置は updateLighting / 専用effectで更新）
+      const pointLightObj = new THREE.PointLight(0xffffff, 0);
       pointLightObj.visible = false;
-      pointLightObj.castShadow = true;
-      pointLightObj.shadow.mapSize.set(2048, 2048);
-      pointLightObj.shadow.bias = -0.0005;
       scene.add(pointLightObj);
-      scene.add(pointLightObj.target);
       pointLightRef.current = pointLightObj;
 
       // Initialize helper classes
@@ -681,10 +603,8 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
   }, [data, dataProcessor, hasFieldDrivenCameraPosition, applyCameraFromSettings]);
 
   // Handle point light position (const or data-field driven), including refresh on data changes
-  // 実際の light.position はシャドウ精度確保のため animate ループ内で注視点付近まで
-  // 引き寄せて上書きされる（updateShadowLight）。ここでは設定値（並行光の方向の起点）だけを保持する。
   useEffect(() => {
-    if (!pointLight || pointLight.enabled !== 'on') {
+    if (!pointLightRef.current || !pointLight || pointLight.enabled !== 'on') {
       return;
     }
     const posX = dataProcessor.getLastDataFieldValue(pointLight.posX, 0);
@@ -696,7 +616,7 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
       return;
     }
 
-    pointLightConfigPosRef.current.set(posX, posY, posZ);
+    pointLightRef.current.position.set(posX, posY, posZ);
   }, [
     pointLight?.enabled,
     pointLight?.posX?.sourceType,
