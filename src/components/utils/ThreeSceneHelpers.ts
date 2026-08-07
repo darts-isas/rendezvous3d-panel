@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import { Shape } from '../../types';
 import { PanelData } from '@grafana/data';
 
-// Opacity is always displayed in the 0-1 range: values above 1 saturate to fully
-// opaque, values below 0 saturate to fully invisible, non-finite values fall back to opaque.
-export function clampOpacity(value: number): number {
+// Brightness is always displayed in the 0-1 range: values above 1 saturate to fully
+// bright (unchanged), values below 0 saturate to fully black, non-finite values fall
+// back to unchanged.
+export function clampBrightness(value: number): number {
   if (!Number.isFinite(value)) {
     return 1;
   }
@@ -313,12 +314,12 @@ export class DataFieldProcessor {
     return values[values.length - 1] || defaultValue;
   }
 
-  // Resolve an object's opacity DataField (undefined means "fully opaque"), clamped to 0-1.
-  getOpacityValue(field: any): number {
+  // Resolve an object's brightness DataField (undefined means "unchanged"), clamped to 0-1.
+  getBrightnessValue(field: any): number {
     if (!field) {
       return 1;
     }
-    return clampOpacity(this.getLastDataFieldValue(field, 1));
+    return clampBrightness(this.getLastDataFieldValue(field, 1));
   }
 }
 

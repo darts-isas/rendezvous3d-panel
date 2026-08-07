@@ -64,7 +64,7 @@ Because this calculation runs immediately after camera movement, objects retain 
 <img src="screenshots/menu6_sphere.png" alt="Sphere configuration" width="250" />
 - Assign telemetry to `Pos X/Y/Z` fields to visualize targets as spheres.
 - Choose between an explicit `Radius` and view-angle sizing with `Auto Radius`.
-- Set `Opacity` to a fixed value or bind it to a field to fade the sphere in and out (see [Opacity](#opacity) below).
+- Set `Brightness` to a fixed value or bind it to a field to darken the sphere (see [Brightness](#brightness) below).
 
 ### 7. 3D model objects
 <img src="screenshots/menu7_3dmodel.png" alt="3D model configuration" width="250" />
@@ -73,16 +73,16 @@ Because this calculation runs immediately after camera movement, objects retain 
 - Bind telemetry to position and quaternion (`Quat X/Y/Z/W`) fields to show attitude.
 - Use the per-model `Interpolation` settings to keep field-driven attitude motion smooth between data refreshes.
 - Choose `Unit` (`km` or `m`) to normalize the scale.
-- Set `Opacity` to a fixed value or bind it to a field to fade the model in and out (see [Opacity](#opacity) below).
+- Set `Brightness` to a fixed value or bind it to a field to darken the model (see [Brightness](#brightness) below).
 
-#### Opacity
+#### Brightness
 
-Sphere and 3D Model objects have an `Opacity` control (Polyline and Annotation objects don't, since they're markers rather than solid bodies). Like the position and quaternion fields, it can be set to a fixed `Const` value or bound to a `Field`:
+Sphere and 3D Model objects have a `Brightness` control (Polyline and Annotation objects don't, since they're markers rather than solid bodies). Like the position and quaternion fields, it can be set to a fixed `Const` value or bound to a `Field`:
 
-- `Const` (default `1`): a fixed value, `0` (fully transparent) to `1` (fully opaque).
-- `Field`: the latest value of a numeric field, re-evaluated on every data refresh. Values above `1` saturate to fully opaque; values below `0` saturate to fully transparent.
+- `Const` (default `1`): a fixed value, `0` (black) to `1` (unchanged).
+- `Field`: the latest value of a numeric field, re-evaluated on every data refresh. Values above `1` saturate to `1`; values below `0` saturate to `0`.
 
-Opacity is applied on top of the model's own authored transparency, so a model that is already partially transparent in its source file is not made fully opaque by setting `Opacity` to `1`.
+Brightness darkens the object's own color toward black by scaling it — it does not change opacity or transparency. The object stays fully solid under the same lighting (still correctly occludes other objects, with none of the draw-order issues transparency can introduce), it simply reflects less light. Brightness is applied on top of the model's own authored materials, so a model that is already partially transparent in its source file keeps that translucency unchanged; only its color darkens.
 
 #### Quaternion interpolation and extrapolation
 

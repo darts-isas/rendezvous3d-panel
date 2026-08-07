@@ -22,7 +22,7 @@ const createDefaultDataField = (): DataField => ({
   value: '0'
 });
 
-const createDefaultOpacityField = (): DataField => ({
+const createDefaultBrightnessField = (): DataField => ({
   sourceType: 'const',
   value: '1'
 });
@@ -46,7 +46,7 @@ const createNewShape = (type: ShapeType, id: string): Shape => {
         posZ: createDefaultDataField(),
         autoRadius: 'on' as const,
         radius: 1,
-        opacity: createDefaultOpacityField()
+        brightness: createDefaultBrightnessField()
       };
     case 'annotation':
       return {
@@ -91,7 +91,7 @@ const createNewShape = (type: ShapeType, id: string): Shape => {
         autoScale: 'on' as const,
         autoScaleFactor: 1,
         unit: 'km' as const, // デフォルトは km
-        opacity: createDefaultOpacityField()
+        brightness: createDefaultBrightnessField()
       };
     default:
       throw new Error(`Unknown shape type: ${type}`);
@@ -167,14 +167,14 @@ const ObjectsEditor: React.FC<ObjectsEditorProps> = ({ value = [], onChange, con
               </InlineField>
             )}
             <DataFieldEditor
-              label="Opacity"
-              value={shape.opacity ?? createDefaultOpacityField()}
-              onChange={(opacity: DataField) => updateShape({ ...shape, opacity })}
+              label="Brightness"
+              value={shape.brightness ?? createDefaultBrightnessField()}
+              onChange={(brightness: DataField) => updateShape({ ...shape, brightness })}
               data={panelData}
-              placeholder="0-1 (1 = opaque)"
+              placeholder="0-1 (1 = unchanged)"
             />
             <div style={{ fontSize: '12px', color: '#888', marginLeft: '16px', fontStyle: 'italic' }}>
-              * Values are clamped to 0-1 (below 0 becomes fully transparent, above 1 becomes fully opaque)
+              * Values are clamped to 0-1 (1 = unchanged, 0 = black). Darkens the sphere's color under the same lighting; it does not become transparent.
             </div>
           </Stack>
         );
@@ -467,14 +467,14 @@ const ObjectsEditor: React.FC<ObjectsEditorProps> = ({ value = [], onChange, con
             )}
             <div style={{ fontWeight: 600, marginTop: '12px' }}>Appearance</div>
             <DataFieldEditor
-              label="Opacity"
-              value={modelShape.opacity ?? createDefaultOpacityField()}
-              onChange={(opacity: DataField) => updateShape({ ...modelShape, opacity })}
+              label="Brightness"
+              value={modelShape.brightness ?? createDefaultBrightnessField()}
+              onChange={(brightness: DataField) => updateShape({ ...modelShape, brightness })}
               data={panelData}
-              placeholder="0-1 (1 = opaque)"
+              placeholder="0-1 (1 = unchanged)"
             />
             <div style={{ fontSize: '12px', color: '#888', marginLeft: '16px', fontStyle: 'italic' }}>
-              * Values are clamped to 0-1 (below 0 becomes fully transparent, above 1 becomes fully opaque)
+              * Values are clamped to 0-1 (1 = unchanged, 0 = black). Darkens the model's color under the same lighting; it does not become transparent.
             </div>
           </Stack>
         );

@@ -154,7 +154,7 @@ describe('ThreeSceneObjectManager object sizing', () => {
   });
 });
 
-describe('ThreeSceneObjectManager opacity', () => {
+describe('ThreeSceneObjectManager brightness', () => {
   const meshMaterial = (object: THREE.Object3D): THREE.MeshLambertMaterial => {
     let found: THREE.MeshLambertMaterial | undefined;
     object.traverse((child) => {
@@ -166,58 +166,81 @@ describe('ThreeSceneObjectManager opacity', () => {
     return found;
   };
 
-  it('applies a const opacity to a sphere, marking it transparent below 1', () => {
-    const { manager } = makeManager();
-    const sphere = manager.createSphere(makeSphere({ opacity: constant(0.5) }));
+  const expectColorCloseTo = (actual: THREE.Color, expected: THREE.Color) => {
+    expect(actual.r).toBeCloseTo(expected.r);
+    expect(actual.g).toBeCloseTo(expected.g);
+    expect(actual.b).toBeCloseTo(expected.b);
+  };
 
-    expect(meshMaterial(sphere).opacity).toBeCloseTo(0.5);
-    expect(meshMaterial(sphere).transparent).toBe(true);
+  it('darkens a sphere color by a const brightness, without touching opacity/transparency', () => {
+    const { manager } = makeManager();
+    const sphere = manager.createSphere(makeSphere({ brightness: constant(0.5) }));
+    const material = meshMaterial(sphere);
+
+    expectColorCloseTo(material.color, new THREE.Color('#ff0000').multiplyScalar(0.5));
+    expect(material.opacity).toBe(1);
+    expect(material.transparent).toBe(false);
   });
 
-  it('defaults an undefined opacity to fully opaque', () => {
+  it('defaults an undefined brightness to unchanged (1)', () => {
     const { manager } = makeManager();
     const sphere = manager.createSphere(makeSphere());
 
-    expect(meshMaterial(sphere).opacity).toBe(1);
-    expect(meshMaterial(sphere).transparent).toBe(false);
+    expectColorCloseTo(meshMaterial(sphere).color, new THREE.Color('#ff0000'));
   });
 
-  it('clamps out-of-range const opacity values', () => {
+  it('clamps out-of-range const brightness values', () => {
     const { manager } = makeManager();
 
-    const over = manager.createSphere(makeSphere({ id: 'over', opacity: constant(2) }));
-    expect(meshMaterial(over).opacity).toBe(1);
-    expect(meshMaterial(over).transparent).toBe(false);
+    const over = manager.createSphere(makeSphere({ id: 'over', brightness: constant(2) }));
+    expectColorCloseTo(meshMaterial(over).color, new THREE.Color('#ff0000'));
 
-    const under = manager.createSphere(makeSphere({ id: 'under', opacity: constant(-1) }));
-    expect(meshMaterial(under).opacity).toBe(0);
-    expect(meshMaterial(under).transparent).toBe(true);
+    const under = manager.createSphere(makeSphere({ id: 'under', brightness: constant(-1) }));
+    expectColorCloseTo(meshMaterial(under).color, new THREE.Color(0, 0, 0));
   });
 
-  it('reflects an opacity change through updateObjects for an existing sphere', () => {
+  it('reflects a brightness change through updateObjects for an existing sphere', () => {
     const { manager } = makeManager();
-    const shape = makeSphere({ opacity: constant(1) });
+    const shape = makeSphere({ brightness: constant(1) });
     const sphere = manager.createSphere(shape);
     manager.addObjectToScene(sphere, shape.id);
 
-    manager.updateObjects([{ ...shape, opacity: constant(0.25) }]);
+    manager.updateObjects([{ ...shape, brightness: constant(0.25) }]);
 
-    expect(meshMaterial(sphere).opacity).toBeCloseTo(0.25);
-    expect(meshMaterial(sphere).transparent).toBe(true);
+    const material = meshMaterial(sphere);
+    expectColorCloseTo(material.color, new THREE.Color('#ff0000').multiplyScalar(0.25));
+    expect(material.opacity).toBe(1);
+    expect(material.transparent).toBe(false);
   });
 
-  it('multiplies shape opacity on top of the default cube base opacity', async () => {
+  it('rebaselines against the new color when both color and brightness change via updateObjects', () => {
     const { manager } = makeManager();
-    const cube = await manager.create3DModel(makeModel({ opacity: constant(0.5) }));
+    const shape = makeSphere({ color: '#ff0000', brightness: constant(0.5) });
+    const sphere = manager.createSphere(shape);
+    manager.addObjectToScene(sphere, shape.id);
 
-    // Default cube material is authored at opacity 0.8.
-    expect(meshMaterial(cube).opacity).toBeCloseTo(0.4);
-    expect(meshMaterial(cube).transparent).toBe(true);
+    // Same brightness, different color: a stale cached base color would incorrectly keep
+    // darkening the old red instead of the new green.
+    manager.updateObjects([{ ...shape, color: '#00ff00', brightness: constant(0.5) }]);
+
+    expectColorCloseTo(meshMaterial(sphere).color, new THREE.Color('#00ff00').multiplyScalar(0.5));
   });
 
-  it('clones materials so opacity does not leak across models sharing a material instance', async () => {
+  it('darkens the default cube color without changing its authored translucency', async () => {
     const { manager } = makeManager();
-    const sharedMaterial = new THREE.MeshLambertMaterial();
+    const cube = await manager.create3DModel(makeModel({ brightness: constant(0.5) }));
+    const material = meshMaterial(cube);
+
+    expectColorCloseTo(material.color, new THREE.Color(0x888888).multiplyScalar(0.5));
+    // Default cube material is authored at opacity 0.8 / transparent true; brightness must
+    // not touch either.
+    expect(material.opacity).toBeCloseTo(0.8);
+    expect(material.transparent).toBe(true);
+  });
+
+  it('clones materials so brightness does not leak across models sharing a material instance', async () => {
+    const { manager } = makeManager();
+    const sharedMaterial = new THREE.MeshLambertMaterial({ color: 0xffffff });
 
     const makeContent = () => {
       const content = new THREE.Group();
@@ -229,12 +252,12 @@ describe('ThreeSceneObjectManager opacity', () => {
       onLoad({ scene: makeContent() });
     });
 
-    const opaqueModel = await manager.create3DModel(makeModel({ id: 'opaque', url: 'model.glb', opacity: constant(1) }));
-    const fadedModel = await manager.create3DModel(makeModel({ id: 'faded', url: 'model.glb', opacity: constant(0.2) }));
+    const brightModel = await manager.create3DModel(makeModel({ id: 'bright', url: 'model.glb', brightness: constant(1) }));
+    const darkModel = await manager.create3DModel(makeModel({ id: 'dark', url: 'model.glb', brightness: constant(0.2) }));
 
-    expect(meshMaterial(opaqueModel).opacity).toBe(1);
-    expect(meshMaterial(fadedModel).opacity).toBeCloseTo(0.2);
+    expectColorCloseTo(meshMaterial(brightModel).color, new THREE.Color(0xffffff));
+    expectColorCloseTo(meshMaterial(darkModel).color, new THREE.Color(0xffffff).multiplyScalar(0.2));
     // The original (shared) material instance itself must be untouched.
-    expect(sharedMaterial.opacity).toBe(1);
+    expectColorCloseTo(sharedMaterial.color, new THREE.Color(0xffffff));
   });
 });

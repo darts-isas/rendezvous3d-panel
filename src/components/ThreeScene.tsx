@@ -431,8 +431,8 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
       autoRadius: obj.autoRadius,
       radius: obj.radius,
       autoScaleFactor: obj.autoScaleFactor,
-      opacitySource: obj.opacity?.sourceType,
-      opacityValue: obj.opacity?.value
+      brightnessSource: obj.brightness?.sourceType,
+      brightnessValue: obj.brightness?.value
     } : {}),
     ...(obj.type === 'annotation' ? {
       textSize: obj.textSize,
@@ -450,8 +450,8 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
       autoScale: obj.autoScale,
       scale: obj.scale,
       autoScaleFactor: obj.autoScaleFactor,
-      opacitySource: obj.opacity?.sourceType,
-      opacityValue: obj.opacity?.value
+      brightnessSource: obj.brightness?.sourceType,
+      brightnessValue: obj.brightness?.value
     } : {})
   })));
 
