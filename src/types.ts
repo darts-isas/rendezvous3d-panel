@@ -23,6 +23,8 @@ export interface SphereShape extends BaseShape {
   radius?: number; // autoRadius が 'off' の場合のみ使用
   /** @deprecated Existing dashboards only. New spheres use View Angle Scaling without a per-object factor. */
   autoScaleFactor?: number;
+  /** Opacity in 0-1, fixed or field-bound. Values outside 0-1 are clamped. Undefined means fully opaque (1). */
+  opacity?: DataField;
 }
 
 export interface AnnotationShape extends BaseShape {
@@ -72,6 +74,8 @@ export interface ModelShape extends BaseShape {
   /** Multiplier applied on top of the automatically computed size when autoScale is 'on'. Default: 1. */
   autoScaleFactor?: number;
   unit?: 'm' | 'km'; // モデルの単位設定（デフォルト: 'km'）
+  /** Opacity in 0-1, fixed or field-bound. Values outside 0-1 are clamped. Undefined means fully opaque (1). */
+  opacity?: DataField;
 }
 
 export type Shape = SphereShape | AnnotationShape | PolylineShape | ModelShape;

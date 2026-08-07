@@ -153,3 +153,88 @@ describe('ThreeSceneObjectManager object sizing', () => {
     expect(worldSize.x).toBeCloseTo(4);
   });
 });
+
+describe('ThreeSceneObjectManager opacity', () => {
+  const meshMaterial = (object: THREE.Object3D): THREE.MeshLambertMaterial => {
+    let found: THREE.MeshLambertMaterial | undefined;
+    object.traverse((child) => {
+      if (child instanceof THREE.Mesh && !found) {
+        found = child.material as THREE.MeshLambertMaterial;
+      }
+    });
+    if (!found) {throw new Error('no mesh material found');}
+    return found;
+  };
+
+  it('applies a const opacity to a sphere, marking it transparent below 1', () => {
+    const { manager } = makeManager();
+    const sphere = manager.createSphere(makeSphere({ opacity: constant(0.5) }));
+
+    expect(meshMaterial(sphere).opacity).toBeCloseTo(0.5);
+    expect(meshMaterial(sphere).transparent).toBe(true);
+  });
+
+  it('defaults an undefined opacity to fully opaque', () => {
+    const { manager } = makeManager();
+    const sphere = manager.createSphere(makeSphere());
+
+    expect(meshMaterial(sphere).opacity).toBe(1);
+    expect(meshMaterial(sphere).transparent).toBe(false);
+  });
+
+  it('clamps out-of-range const opacity values', () => {
+    const { manager } = makeManager();
+
+    const over = manager.createSphere(makeSphere({ id: 'over', opacity: constant(2) }));
+    expect(meshMaterial(over).opacity).toBe(1);
+    expect(meshMaterial(over).transparent).toBe(false);
+
+    const under = manager.createSphere(makeSphere({ id: 'under', opacity: constant(-1) }));
+    expect(meshMaterial(under).opacity).toBe(0);
+    expect(meshMaterial(under).transparent).toBe(true);
+  });
+
+  it('reflects an opacity change through updateObjects for an existing sphere', () => {
+    const { manager } = makeManager();
+    const shape = makeSphere({ opacity: constant(1) });
+    const sphere = manager.createSphere(shape);
+    manager.addObjectToScene(sphere, shape.id);
+
+    manager.updateObjects([{ ...shape, opacity: constant(0.25) }]);
+
+    expect(meshMaterial(sphere).opacity).toBeCloseTo(0.25);
+    expect(meshMaterial(sphere).transparent).toBe(true);
+  });
+
+  it('multiplies shape opacity on top of the default cube base opacity', async () => {
+    const { manager } = makeManager();
+    const cube = await manager.create3DModel(makeModel({ opacity: constant(0.5) }));
+
+    // Default cube material is authored at opacity 0.8.
+    expect(meshMaterial(cube).opacity).toBeCloseTo(0.4);
+    expect(meshMaterial(cube).transparent).toBe(true);
+  });
+
+  it('clones materials so opacity does not leak across models sharing a material instance', async () => {
+    const { manager } = makeManager();
+    const sharedMaterial = new THREE.MeshLambertMaterial();
+
+    const makeContent = () => {
+      const content = new THREE.Group();
+      content.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), sharedMaterial));
+      return content;
+    };
+
+    (manager as any).gltfLoader.load = jest.fn((_url: string, onLoad: (gltf: any) => void) => {
+      onLoad({ scene: makeContent() });
+    });
+
+    const opaqueModel = await manager.create3DModel(makeModel({ id: 'opaque', url: 'model.glb', opacity: constant(1) }));
+    const fadedModel = await manager.create3DModel(makeModel({ id: 'faded', url: 'model.glb', opacity: constant(0.2) }));
+
+    expect(meshMaterial(opaqueModel).opacity).toBe(1);
+    expect(meshMaterial(fadedModel).opacity).toBeCloseTo(0.2);
+    // The original (shared) material instance itself must be untouched.
+    expect(sharedMaterial.opacity).toBe(1);
+  });
+});

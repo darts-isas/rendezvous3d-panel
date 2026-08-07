@@ -85,6 +85,57 @@ export class ThreeSceneObjectManager {
     mesh.geometry = newGeometry;
   }
 
+  // Clone each mesh's material once, right after a model is created, so opacity can be
+  // applied per-shape without leaking into other meshes/models that might reference the
+  // same shared material instance (common with GLTF materials reused across meshes).
+  private prepareMaterialsForOpacity(root: THREE.Object3D): void {
+    const cloneWithBase = (material: THREE.Material): THREE.Material => {
+      const cloned = material.clone();
+      cloned.userData.baseOpacity = material.opacity;
+      cloned.userData.baseTransparent = material.transparent;
+      return cloned;
+    };
+
+    root.traverse((child) => {
+      if (!(child instanceof THREE.Mesh) || !child.material) {
+        return;
+      }
+      child.material = Array.isArray(child.material)
+        ? child.material.map(cloneWithBase)
+        : cloneWithBase(child.material);
+    });
+  }
+
+  // Apply a shape's opacity (0-1) on top of each material's original authored opacity,
+  // so a fully-opaque shape opacity (1) never changes an already-translucent material.
+  private applyOpacity(root: THREE.Object3D, opacity: number): void {
+    const applyToMaterial = (material: THREE.Material & { opacity: number; transparent: boolean; depthWrite: boolean }) => {
+      const baseOpacity = material.userData?.baseOpacity ?? material.opacity ?? 1;
+      const baseTransparent = material.userData?.baseTransparent ?? material.transparent ?? false;
+      const effectiveOpacity = baseOpacity * opacity;
+      const wasTransparent = material.transparent;
+
+      material.opacity = effectiveOpacity;
+      material.transparent = baseTransparent || effectiveOpacity < 1;
+      material.depthWrite = effectiveOpacity >= 1;
+
+      if (material.transparent !== wasTransparent) {
+        material.needsUpdate = true;
+      }
+    };
+
+    root.traverse((child) => {
+      if (!(child instanceof THREE.Mesh) || !child.material) {
+        return;
+      }
+      if (Array.isArray(child.material)) {
+        child.material.forEach((m) => applyToMaterial(m as any));
+      } else {
+        applyToMaterial(child.material as any);
+      }
+    });
+  }
+
   private applyModelSizing(model: THREE.Object3D, shape: any): void {
     const unitScale = this.getModelUnitScale(shape);
     const nativeMaxDimension = model.userData.nativeMaxDimension;
@@ -118,6 +169,7 @@ export class ThreeSceneObjectManager {
 
     mesh.position.set(posX, posY, posZ);
     mesh.name = shape.name;
+    this.applyOpacity(mesh, this.dataProcessor.getOpacityValue(shape.opacity));
     
     mesh.userData = { 
       shapeId: shape.id, 
@@ -432,6 +484,11 @@ export class ThreeSceneObjectManager {
             }
           });
 
+          // Clone materials so this model's opacity never leaks into meshes/models that
+          // might share the same material instance, then apply the shape's opacity.
+          this.prepareMaterialsForOpacity(modelContent);
+          this.applyOpacity(modelContent, this.dataProcessor.getOpacityValue(shape.opacity));
+
           // Measure the model-authored geometry before applying scene unit scaling,
           // telemetry attitude, or a legacy manual scale.
           modelContent.updateMatrixWorld(true);
@@ -530,7 +587,8 @@ export class ThreeSceneObjectManager {
 
           existingObject.userData.viewAngleConfig = this.createViewAngleConfig(shape.autoRadius === 'on');
           existingObject.userData.originalScale = this.getLegacyAutoScaleFactor(shape);
-          
+          this.applyOpacity(existingObject, this.dataProcessor.getOpacityValue(shape.opacity));
+
         } else if (shape.type === 'annotation') {
           // Update annotation text and positions
           this.updateAnnotationText(existingObject as THREE.Group, null, shape);
@@ -577,6 +635,7 @@ export class ThreeSceneObjectManager {
           }
           
           this.applyModelSizing(existingObject, shape);
+          this.applyOpacity(existingObject, this.dataProcessor.getOpacityValue(shape.opacity));
 
           // URLを更新
           existingObject.userData.originalUrl = newUrl;
@@ -990,6 +1049,8 @@ export class ThreeSceneObjectManager {
     });
     const cube = new THREE.Mesh(geometry, material);
     group.add(cube);
+    this.prepareMaterialsForOpacity(group);
+    this.applyOpacity(group, this.dataProcessor.getOpacityValue(shape.opacity));
 
     // 位置を設定
     group.position.set(posX, posY, posZ);

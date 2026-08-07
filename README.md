@@ -64,6 +64,7 @@ Because this calculation runs immediately after camera movement, objects retain 
 <img src="screenshots/menu6_sphere.png" alt="Sphere configuration" width="250" />
 - Assign telemetry to `Pos X/Y/Z` fields to visualize targets as spheres.
 - Choose between an explicit `Radius` and view-angle sizing with `Auto Radius`.
+- Set `Opacity` to a fixed value or bind it to a field to fade the sphere in and out (see [Opacity](#opacity) below).
 
 ### 7. 3D model objects
 <img src="screenshots/menu7_3dmodel.png" alt="3D model configuration" width="250" />
@@ -72,6 +73,16 @@ Because this calculation runs immediately after camera movement, objects retain 
 - Bind telemetry to position and quaternion (`Quat X/Y/Z/W`) fields to show attitude.
 - Use the per-model `Interpolation` settings to keep field-driven attitude motion smooth between data refreshes.
 - Choose `Unit` (`km` or `m`) to normalize the scale.
+- Set `Opacity` to a fixed value or bind it to a field to fade the model in and out (see [Opacity](#opacity) below).
+
+#### Opacity
+
+Sphere and 3D Model objects have an `Opacity` control (Polyline and Annotation objects don't, since they're markers rather than solid bodies). Like the position and quaternion fields, it can be set to a fixed `Const` value or bound to a `Field`:
+
+- `Const` (default `1`): a fixed value, `0` (fully transparent) to `1` (fully opaque).
+- `Field`: the latest value of a numeric field, re-evaluated on every data refresh. Values above `1` saturate to fully opaque; values below `0` saturate to fully transparent.
+
+Opacity is applied on top of the model's own authored transparency, so a model that is already partially transparent in its source file is not made fully opaque by setting `Opacity` to `1`.
 
 #### Quaternion interpolation and extrapolation
 
