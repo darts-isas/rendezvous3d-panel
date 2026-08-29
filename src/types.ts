@@ -134,11 +134,25 @@ export interface ViewAngleScalingSettings {
   maxSize: number; // 最大サイズ（デフォルト: 10.0）
 }
 
+/** One key parameter shown in the text overlay, drawn on top of the 3D scene. */
+export interface KeyParam {
+  id: string;
+  name: string;
+  visible: boolean;
+
+  /** Field spec, same rules as DataField's field mode: 'Series.Field' or a bare 'Field'. */
+  field: string;
+
+  /** A single printf-style specifier (%.2f, %s, %d, %+.1e, ...) plus any literal text.
+   * Only the first specifier is substituted with the value; the rest is literal. */
+  format: string;
+}
+
 export interface Rendezvous3DPanelOptions {
   // Basic Settings
   showAxis?: 'on' | 'off';
   backgroundColor?: string;
-  
+
   // Lighting Settings
   ambientLightIntensity?: number;
   pointLight?: PointLightSettings;
@@ -146,10 +160,27 @@ export interface Rendezvous3DPanelOptions {
   // Camera Settings
   camera?: CameraSettings;
   targetObjectId?: string; // 注視対象オブジェクトID（Origin含む）
-  
+
   // View Angle Scaling Settings
   viewAngleScaling?: ViewAngleScalingSettings;
-  
+
   // Objects
   objects?: Shape[];
+
+  // Key Parameters — a fixed-format text overlay drawn on top of the 3D view.
+  keyParams?: KeyParam[];
+  keyParamFontSize?: number;
+  // Split into two 2-way radios (rather than one 4-way one) so the options editor doesn't
+  // overflow its narrow panel width.
+  keyParamVerticalPosition?: 'top' | 'bottom';
+  keyParamHorizontalPosition?: 'left' | 'right';
+  keyParamSeparator?: 'colon' | 'equal' | 'space';
+  keyParamValueWidth?: number;
+  keyParamTextColor?: string;
+  keyParamBackground?: boolean;
+  keyParamBackgroundColor?: string;
+  keyParamBackgroundOpacity?: number;
+  keyParamShape?: 'rect' | 'rounded';
+  keyParamBorder?: boolean;
+  keyParamBorderColor?: string;
 }

@@ -147,6 +147,19 @@ export const Rendezvous3DPanel: React.FC<Props> = ({ options, data, width, heigh
           posZ: { sourceType: 'const', value: '0' },
           ...options.pointLight,
         }}
+        keyParams={options.keyParams || []}
+        keyParamFontSize={options.keyParamFontSize}
+        keyParamVerticalPosition={options.keyParamVerticalPosition}
+        keyParamHorizontalPosition={options.keyParamHorizontalPosition}
+        keyParamSeparator={options.keyParamSeparator}
+        keyParamValueWidth={options.keyParamValueWidth}
+        keyParamTextColor={options.keyParamTextColor}
+        keyParamBackground={options.keyParamBackground}
+        keyParamBackgroundColor={options.keyParamBackgroundColor}
+        keyParamBackgroundOpacity={options.keyParamBackgroundOpacity}
+        keyParamShape={options.keyParamShape}
+        keyParamBorder={options.keyParamBorder}
+        keyParamBorderColor={options.keyParamBorderColor}
       />
     </div>
   );

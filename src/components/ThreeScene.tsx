@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { Shape, CameraSettings, ViewAngleScalingSettings, PointLightSettings } from '../types';
+import { Shape, CameraSettings, ViewAngleScalingSettings, PointLightSettings, KeyParam } from '../types';
 import { PanelData } from '@grafana/data';
 import { DataFieldProcessor, BoundsCalculator, CameraController } from './utils/ThreeSceneHelpers';
 import { ThreeSceneObjectManager } from './utils/ThreeSceneObjectManager';
@@ -10,6 +10,7 @@ import {
   isQuaternionInterpolationActive,
   QuaternionInterpolationStore,
 } from './utils/QuaternionInterpolation';
+import { KeyParamsOverlay } from './KeyParamsOverlay';
 
 interface ThreeSceneProps {
   width: number;
@@ -24,6 +25,20 @@ interface ThreeSceneProps {
   cameraSettings?: CameraSettings;
   viewAngleScaling?: ViewAngleScalingSettings;
   pointLight?: PointLightSettings;
+  // Key Parameters — a fixed-format text overlay drawn on top of the scene.
+  keyParams?: KeyParam[];
+  keyParamFontSize?: number;
+  keyParamVerticalPosition?: 'top' | 'bottom';
+  keyParamHorizontalPosition?: 'left' | 'right';
+  keyParamSeparator?: 'colon' | 'equal' | 'space';
+  keyParamValueWidth?: number;
+  keyParamTextColor?: string;
+  keyParamBackground?: boolean;
+  keyParamBackgroundColor?: string;
+  keyParamBackgroundOpacity?: number;
+  keyParamShape?: 'rect' | 'rounded';
+  keyParamBorder?: boolean;
+  keyParamBorderColor?: string;
 }
 
 export const ThreeScene: React.FC<ThreeSceneProps> = ({
@@ -39,6 +54,19 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
   cameraSettings,
   viewAngleScaling,
   pointLight,
+  keyParams,
+  keyParamFontSize,
+  keyParamVerticalPosition,
+  keyParamHorizontalPosition,
+  keyParamSeparator,
+  keyParamValueWidth,
+  keyParamTextColor,
+  keyParamBackground,
+  keyParamBackgroundColor,
+  keyParamBackgroundOpacity,
+  keyParamShape,
+  keyParamBorder,
+  keyParamBorderColor,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<THREE.Scene>();
@@ -711,6 +739,24 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
       <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
+      <KeyParamsOverlay
+        keyParams={keyParams ?? []}
+        series={data?.series}
+        fontSize={keyParamFontSize}
+        verticalPosition={keyParamVerticalPosition}
+        horizontalPosition={keyParamHorizontalPosition}
+        separator={keyParamSeparator}
+        valueWidth={keyParamValueWidth}
+        textColor={keyParamTextColor}
+        background={keyParamBackground}
+        backgroundColor={keyParamBackgroundColor}
+        backgroundOpacity={keyParamBackgroundOpacity}
+        shape={keyParamShape}
+        border={keyParamBorder}
+        borderColor={keyParamBorderColor}
+        avoidTopLeftOverlap={cameraSettings?.showPositionAndDistance === 'on'}
+        avoidTopRightOverlap={showSaveCameraButton || showResetCameraButton}
+      />
       {cameraSettings?.showPositionAndDistance === 'on' && (
         <div
           ref={distanceDisplayRef}

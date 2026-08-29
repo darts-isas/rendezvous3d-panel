@@ -105,6 +105,30 @@ Samples are validated, normalized, sorted by time, and retained separately for e
 - Link text content and position to data fields for event callouts or labels.
 - Adjust the connector direction, text color, and size for clarity.
 
+### 10. Key parameters overlay
+
+Overlays a fixed-format text list of data field values on top of the 3D view, under the **Key Parameters** category. The box's size depends only on the item count, names, and *Value Width* — never on the values themselves, so it never resizes as data changes.
+
+- **Font Size**: Font size of the overlay text, in pixels.
+- **Vertical Position** / **Horizontal Position**: Which edge and side the overlay is anchored to — `Top`/`Bottom` and `Left`/`Right`, combining into one of the four corners. Default: `Top` / `Left`.
+- **Separator**: Text placed between each parameter's name and value — `:`, `=`, or a plain space.
+- **Value Width**: Fixed width of the value column, in characters. Values shorter than this are right-padded with spaces; longer ones are truncated from the right, so the column width never changes.
+- **Text Color**: Color of the overlay text.
+- **Background**: Show a background behind the overlay text. Default: on, neutral gray at `0.25` opacity.
+- **Background Color** / **Background Opacity**: Color and opacity (`0`-`1`) of the background, shown when *Background* is on.
+- **Shape**: Corner style of the background/border — `Rectangle` or `Rounded`.
+- **Border**: Show a border around the overlay. Default: on.
+- **Border Color**: Color of the border, shown when *Border* is on.
+- **Add Key Parameter**: Add a new value to the overlay. The list below shows every parameter; select one to edit it, use the eye icon to hide it, the arrows to reorder, and the trash icon to remove it.
+
+Each key parameter has the following settings:
+
+- **Name**: Display name, shown in the name column.
+- **Data Field**: The field whose latest value is displayed, given either as `Series.Field` (for example `A.mode`) or as a bare field name (`mode`). Unlike the object position/quaternion fields, this accepts fields of any type (numeric, string, time, boolean, ...), not just numeric ones.
+- **Format**: A single `printf`-style specifier plus any literal text, applied to the field's latest value — for example `%.2f`, `%.2f deg`, `%s`, `%d`, or `%+.1e`. Only the first specifier in the string is substituted with the value; anything else is shown as-is. When the field can't be resolved, `-` is shown instead of a value.
+
+If the overlay is placed in the top-left corner while **Show Position and Distance** (Camera Settings) is on, or in the top-right corner while the **Save/Reset Camera** buttons are shown, it automatically shifts down to avoid overlapping them.
+
 ## Data assignment tips
 
 - Each field can switch between `Const` (fixed value) and `Field` (data source column).

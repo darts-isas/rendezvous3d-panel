@@ -5,6 +5,7 @@ import { ObjectsEditor } from './components/ObjectsEditor';
 import { TargetObjectEditor } from './components/TargetObjectEditor';
 import { CameraAxisEditor } from './components/CameraAxisEditor';
 import ViewAngleScalingEditor from './components/ViewAngleScalingEditor';
+import { KeyParamsEditor } from './components/KeyParamsEditor';
 
 export const plugin = new PanelPlugin<Rendezvous3DPanelOptions>(Rendezvous3DPanel).setPanelOptions((builder) => {
   return builder
@@ -314,5 +315,122 @@ export const plugin = new PanelPlugin<Rendezvous3DPanelOptions>(Rendezvous3DPane
       editor: ObjectsEditor,
       defaultValue: [],
       category: ['Objects'],
+    })
+
+    // Key Parameters — overlays a fixed-format text list of data values on top of the
+    // scene. Global style settings first, the per-parameter list editor last.
+    .addNumberInput({
+      path: 'keyParamFontSize',
+      name: 'Font Size',
+      description: 'Font size of the key parameter overlay, in pixels',
+      defaultValue: 14,
+      category: ['Key Parameters'],
+    })
+    .addRadio({
+      path: 'keyParamVerticalPosition',
+      name: 'Vertical Position',
+      settings: {
+        options: [
+          { value: 'top', label: 'Top' },
+          { value: 'bottom', label: 'Bottom' },
+        ],
+      },
+      defaultValue: 'top',
+      category: ['Key Parameters'],
+    })
+    .addRadio({
+      path: 'keyParamHorizontalPosition',
+      name: 'Horizontal Position',
+      settings: {
+        options: [
+          { value: 'left', label: 'Left' },
+          { value: 'right', label: 'Right' },
+        ],
+      },
+      defaultValue: 'left',
+      category: ['Key Parameters'],
+    })
+    .addRadio({
+      path: 'keyParamSeparator',
+      name: 'Separator',
+      description: "Text placed between each parameter's name and value",
+      settings: {
+        options: [
+          { value: 'colon', label: ':' },
+          { value: 'equal', label: '=' },
+          { value: 'space', label: '(space)' },
+        ],
+      },
+      defaultValue: 'colon',
+      category: ['Key Parameters'],
+    })
+    .addNumberInput({
+      path: 'keyParamValueWidth',
+      name: 'Value Width',
+      description: 'Fixed width of the value column, in characters. Keeps the overlay size constant regardless of the value.',
+      defaultValue: 8,
+      category: ['Key Parameters'],
+    })
+    .addColorPicker({
+      path: 'keyParamTextColor',
+      name: 'Text Color',
+      defaultValue: '#ffffff',
+      category: ['Key Parameters'],
+    })
+    .addBooleanSwitch({
+      path: 'keyParamBackground',
+      name: 'Background',
+      description: 'Show a background behind the overlay text',
+      defaultValue: true,
+      category: ['Key Parameters'],
+    })
+    .addColorPicker({
+      path: 'keyParamBackgroundColor',
+      name: 'Background Color',
+      defaultValue: '#808080',
+      category: ['Key Parameters'],
+      showIf: (config: Rendezvous3DPanelOptions) => config.keyParamBackground === true,
+    })
+    .addSliderInput({
+      path: 'keyParamBackgroundOpacity',
+      name: 'Background Opacity',
+      settings: { min: 0, max: 1, step: 0.05 },
+      defaultValue: 0.25,
+      category: ['Key Parameters'],
+      showIf: (config: Rendezvous3DPanelOptions) => config.keyParamBackground === true,
+    })
+    .addRadio({
+      path: 'keyParamShape',
+      name: 'Shape',
+      settings: {
+        options: [
+          { value: 'rect', label: 'Rectangle' },
+          { value: 'rounded', label: 'Rounded' },
+        ],
+      },
+      defaultValue: 'rounded',
+      category: ['Key Parameters'],
+    })
+    .addBooleanSwitch({
+      path: 'keyParamBorder',
+      name: 'Border',
+      defaultValue: true,
+      category: ['Key Parameters'],
+    })
+    .addColorPicker({
+      path: 'keyParamBorderColor',
+      name: 'Border Color',
+      defaultValue: '#ffffff',
+      category: ['Key Parameters'],
+      showIf: (config: Rendezvous3DPanelOptions) => config.keyParamBorder === true,
+    })
+    .addCustomEditor({
+      id: 'keyParams',
+      path: 'keyParams',
+      name: 'Key Parameters',
+      description: 'Add and configure the key parameters shown over the model',
+      editor: KeyParamsEditor,
+      defaultValue: [],
+      category: ['Key Parameters'],
     });
 });
