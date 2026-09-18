@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { Shape, CameraSettings, ViewAngleScalingSettings, PointLightSettings, KeyParam } from '../types';
 import { PanelData } from '@grafana/data';
+import { Icon, IconButton } from '@grafana/ui';
 import { DataFieldProcessor, BoundsCalculator, CameraController } from './utils/ThreeSceneHelpers';
 import { ThreeSceneObjectManager } from './utils/ThreeSceneObjectManager';
 import {
@@ -796,7 +797,18 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
             <button onClick={handleSaveCamera} style={overlayButtonStyle}>Save Camera Position</button>
           )}
           {showResetCameraButton && (
-            <button onClick={handleResetCamera} style={overlayButtonStyle}>Reset Camera</button>
+            // Subject icon (camera) + action icon (sync), no text label — matches the
+            // scene-controls icon composition used by the attitude3d-panel plugin.
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+              <Icon name="camera" size="sm" style={{ color: 'rgba(255, 255, 255, 0.7)' }} aria-hidden />
+              <IconButton
+                name="sync"
+                size="sm"
+                tooltip="Reset camera to default position"
+                aria-label="Reset camera to default position"
+                onClick={handleResetCamera}
+              />
+            </div>
           )}
         </div>
       )}
