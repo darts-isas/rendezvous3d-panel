@@ -147,6 +147,14 @@ export const Rendezvous3DPanel: React.FC<Props> = ({ options, data, width, heigh
           posZ: { sourceType: 'const', value: '0' },
           ...options.pointLight,
         }}
+        directionalLight={{
+          enabled: 'off',
+          intensity: 1.0,
+          dirX: { sourceType: 'const', value: '1' },
+          dirY: { sourceType: 'const', value: '1' },
+          dirZ: { sourceType: 'const', value: '1' },
+          ...options.directionalLight,
+        }}
         keyParams={options.keyParams || []}
         keyParamFontSize={options.keyParamFontSize}
         keyParamVerticalPosition={options.keyParamVerticalPosition}

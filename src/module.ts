@@ -153,6 +153,120 @@ export const plugin = new PanelPlugin<Rendezvous3DPanelOptions>(Rendezvous3DPane
       showIf: (config: Rendezvous3DPanelOptions) =>
         config.pointLight?.enabled === 'on' && config.pointLight?.posZ?.sourceType === 'field',
     })
+    .addRadio({
+      path: 'directionalLight.enabled',
+      name: 'Directional Light',
+      description: 'Enable a parallel light source (e.g. sunlight) shining from the configured direction.',
+      defaultValue: 'off',
+      settings: {
+        options: [
+          { value: 'on', label: 'On' },
+          { value: 'off', label: 'Off' },
+        ],
+      },
+      category: ['Lighting Settings'],
+    })
+    .addNumberInput({
+      path: 'directionalLight.intensity',
+      name: 'Directional Light Intensity',
+      description: 'Light intensity.',
+      defaultValue: 1.0,
+      settings: {
+        min: 0,
+      },
+      category: ['Lighting Settings'],
+      showIf: (config: Rendezvous3DPanelOptions) => config.directionalLight?.enabled === 'on',
+    })
+    .addRadio({
+      path: 'directionalLight.dirX.sourceType',
+      name: 'Light X Direction Source',
+      defaultValue: 'const',
+      settings: {
+        options: [
+          { value: 'const', label: 'Constant' },
+          { value: 'field', label: 'Field' },
+        ],
+      },
+      category: ['Lighting Settings'],
+      showIf: (config: Rendezvous3DPanelOptions) => config.directionalLight?.enabled === 'on',
+    })
+    .addNumberInput({
+      path: 'directionalLight.dirX.value',
+      name: 'Light X Direction',
+      description: 'Direction component pointing from the scene toward the light source.',
+      defaultValue: 1,
+      category: ['Lighting Settings'],
+      showIf: (config: Rendezvous3DPanelOptions) =>
+        config.directionalLight?.enabled === 'on' && config.directionalLight?.dirX?.sourceType === 'const',
+    })
+    .addTextInput({
+      path: 'directionalLight.dirX.value',
+      name: 'Light X Direction Field Name',
+      defaultValue: '',
+      category: ['Lighting Settings'],
+      showIf: (config: Rendezvous3DPanelOptions) =>
+        config.directionalLight?.enabled === 'on' && config.directionalLight?.dirX?.sourceType === 'field',
+    })
+    .addRadio({
+      path: 'directionalLight.dirY.sourceType',
+      name: 'Light Y Direction Source',
+      defaultValue: 'const',
+      settings: {
+        options: [
+          { value: 'const', label: 'Constant' },
+          { value: 'field', label: 'Field' },
+        ],
+      },
+      category: ['Lighting Settings'],
+      showIf: (config: Rendezvous3DPanelOptions) => config.directionalLight?.enabled === 'on',
+    })
+    .addNumberInput({
+      path: 'directionalLight.dirY.value',
+      name: 'Light Y Direction',
+      description: 'Direction component pointing from the scene toward the light source.',
+      defaultValue: 1,
+      category: ['Lighting Settings'],
+      showIf: (config: Rendezvous3DPanelOptions) =>
+        config.directionalLight?.enabled === 'on' && config.directionalLight?.dirY?.sourceType === 'const',
+    })
+    .addTextInput({
+      path: 'directionalLight.dirY.value',
+      name: 'Light Y Direction Field Name',
+      defaultValue: '',
+      category: ['Lighting Settings'],
+      showIf: (config: Rendezvous3DPanelOptions) =>
+        config.directionalLight?.enabled === 'on' && config.directionalLight?.dirY?.sourceType === 'field',
+    })
+    .addRadio({
+      path: 'directionalLight.dirZ.sourceType',
+      name: 'Light Z Direction Source',
+      defaultValue: 'const',
+      settings: {
+        options: [
+          { value: 'const', label: 'Constant' },
+          { value: 'field', label: 'Field' },
+        ],
+      },
+      category: ['Lighting Settings'],
+      showIf: (config: Rendezvous3DPanelOptions) => config.directionalLight?.enabled === 'on',
+    })
+    .addNumberInput({
+      path: 'directionalLight.dirZ.value',
+      name: 'Light Z Direction',
+      description: 'Direction component pointing from the scene toward the light source.',
+      defaultValue: 1,
+      category: ['Lighting Settings'],
+      showIf: (config: Rendezvous3DPanelOptions) =>
+        config.directionalLight?.enabled === 'on' && config.directionalLight?.dirZ?.sourceType === 'const',
+    })
+    .addTextInput({
+      path: 'directionalLight.dirZ.value',
+      name: 'Light Z Direction Field Name',
+      defaultValue: '',
+      category: ['Lighting Settings'],
+      showIf: (config: Rendezvous3DPanelOptions) =>
+        config.directionalLight?.enabled === 'on' && config.directionalLight?.dirZ?.sourceType === 'field',
+    })
 
     // Auto Scaling Factors Settings
     .addCustomEditor({

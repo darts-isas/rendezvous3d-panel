@@ -18,6 +18,7 @@ jest.mock('three', () => {
     lastCamera?: THREE.PerspectiveCamera;
 
     setSize = jest.fn();
+    setPixelRatio = jest.fn();
     render = jest.fn((_scene: THREE.Scene, camera: THREE.PerspectiveCamera) => {
       this.lastCamera = camera;
     });
@@ -60,6 +61,7 @@ jest.mock('./utils/ThreeSceneObjectManager', () => {
     }
 
     setCamera = jest.fn();
+    setLineResolution = jest.fn();
     updateViewAngleScaling = jest.fn();
     updateGlobalViewAngleSettings = jest.fn();
     removeObjectsFromScene = jest.fn();

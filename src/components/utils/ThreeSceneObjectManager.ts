@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { Line2 } from 'three/examples/jsm/lines/Line2';
+import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry';
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial';
 import { ModelShape, Shape, ViewAngleScalingSettings } from '../../types';
 import { DataFieldProcessor } from './ThreeSceneHelpers';
 import { ViewAngleScaling } from './ViewAngleScaling';
@@ -13,6 +16,8 @@ export class ThreeSceneObjectManager {
   private camera: THREE.Camera | null = null;
   private globalViewAngleSettings: ViewAngleScalingSettings;
   private loadingVersions: Map<string, number> = new Map(); // 非同期処理の競合状態を防ぐ
+  // LineMaterial（Line2）は線幅をピクセルで解釈するため、描画領域のサイズが必要
+  private lineResolution = new THREE.Vector2(1, 1);
 
   constructor(
     scene: THREE.Scene, 
@@ -34,6 +39,16 @@ export class ThreeSceneObjectManager {
   // カメラ参照を設定
   setCamera(camera: THREE.Camera): void {
     this.camera = camera;
+  }
+
+  // 描画領域サイズを設定し、既存のポリラインにも反映
+  setLineResolution(width: number, height: number): void {
+    this.lineResolution.set(width, height);
+    this.objectsRef.current.forEach((object) => {
+      if (object instanceof Line2) {
+        (object.material as LineMaterial).resolution.copy(this.lineResolution);
+      }
+    });
   }
 
   // グローバル視野角スケーリング設定を更新
@@ -187,7 +202,8 @@ export class ThreeSceneObjectManager {
   }
 
   // Create polyline object
-  createPolyline(shape: any): THREE.Line {
+  // Line2（太線）で描画する。THREE.Line は WebGL で linewidth が無視され常に1pxになるため
+  createPolyline(shape: any): Line2 {
     const pointsX = this.dataProcessor.getDataFieldValue(shape.pointsX, 0);
     const pointsY = this.dataProcessor.getDataFieldValue(shape.pointsY, 0);
     const pointsZ = this.dataProcessor.getDataFieldValue(shape.pointsZ, 0);
@@ -204,23 +220,29 @@ export class ThreeSceneObjectManager {
       points.push(points[0].clone());
     }
 
-    let geometry: THREE.BufferGeometry;
-    
+    let linePoints = points;
     if (shape.smoothCurve === 'on' && points.length > 2) {
       // Create smooth curve
       const curve = new THREE.CatmullRomCurve3(points);
-      geometry = new THREE.TubeGeometry(curve, Math.max(points.length * 2, 64), shape.strokeSize || 0.1, 8, false);
-    } else {
-      // Create simple line
-      geometry = new THREE.BufferGeometry().setFromPoints(points);
+      linePoints = curve.getPoints(Math.max(points.length * 2, 64));
     }
 
-    const material = new THREE.LineBasicMaterial({ 
-      color: shape.strokeColor || '#ffffff',
-      linewidth: shape.strokeSize || 1
-    });
+    const geometry = new LineGeometry();
+    if (linePoints.length >= 2) {
+      geometry.setPositions(linePoints.flatMap((p) => [p.x, p.y, p.z]));
+    }
 
-    const line = new THREE.Line(geometry, material);
+    const material = new LineMaterial({
+      color: shape.strokeColor || '#ffffff',
+      linewidth: shape.strokeSize || 1, // ピクセル単位
+      worldUnits: false,
+      alphaToCoverage: false,
+    });
+    material.resolution.copy(this.lineResolution);
+
+    const line = new Line2(geometry, material);
+    // 点が2つ未満だとインスタンス属性が無く描画できないため非表示にする
+    line.visible = linePoints.length >= 2;
     line.name = shape.name;
     line.userData = { shapeId: shape.id, shapeType: shape.type };
 

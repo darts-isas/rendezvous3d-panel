@@ -2,7 +2,11 @@
 // generally used by snapshots, but can affect specific tests
 process.env.TZ = 'UTC';
 
+const { grafanaESModules, nodeModulesToTransform } = require('./.config/jest/utils');
+
 module.exports = {
   // Jest configuration provided by Grafana scaffolding
   ...require('./.config/jest.config'),
+  // three/examples/jsm (Line2 etc.) is shipped as ESM only
+  transformIgnorePatterns: [nodeModulesToTransform([...grafanaESModules, 'three'])],
 };

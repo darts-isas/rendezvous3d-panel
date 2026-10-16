@@ -128,6 +128,15 @@ export interface PointLightSettings {
   posZ: DataField;
 }
 
+/** Parallel light (e.g. sunlight). dirX/Y/Z point from the scene toward the light source. */
+export interface DirectionalLightSettings {
+  enabled: 'on' | 'off';
+  intensity: number;
+  dirX: DataField;
+  dirY: DataField;
+  dirZ: DataField;
+}
+
 export interface ViewAngleScalingSettings {
   targetAngularSize: number; // ラジアン単位（デフォルト: 0.02）
   minSize: number; // 最小サイズ（デフォルト: 0.1）
@@ -156,6 +165,7 @@ export interface Rendezvous3DPanelOptions {
   // Lighting Settings
   ambientLightIntensity?: number;
   pointLight?: PointLightSettings;
+  directionalLight?: DirectionalLightSettings;
 
   // Camera Settings
   camera?: CameraSettings;

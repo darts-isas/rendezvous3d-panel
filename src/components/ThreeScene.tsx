@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { Shape, CameraSettings, ViewAngleScalingSettings, PointLightSettings, KeyParam } from '../types';
+import { Shape, CameraSettings, ViewAngleScalingSettings, PointLightSettings, DirectionalLightSettings, KeyParam } from '../types';
 import { PanelData } from '@grafana/data';
 import { Icon, IconButton } from '@grafana/ui';
 import { DataFieldProcessor, BoundsCalculator, CameraController } from './utils/ThreeSceneHelpers';
@@ -26,6 +26,7 @@ interface ThreeSceneProps {
   cameraSettings?: CameraSettings;
   viewAngleScaling?: ViewAngleScalingSettings;
   pointLight?: PointLightSettings;
+  directionalLight?: DirectionalLightSettings;
   // Key Parameters — a fixed-format text overlay drawn on top of the scene.
   keyParams?: KeyParam[];
   keyParamFontSize?: number;
@@ -55,6 +56,7 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
   cameraSettings,
   viewAngleScaling,
   pointLight,
+  directionalLight,
   keyParams,
   keyParamFontSize,
   keyParamVerticalPosition,
@@ -80,6 +82,7 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
   const distanceDisplayRef = useRef<HTMLDivElement>(null);
   const ambientLightRef = useRef<THREE.AmbientLight>();
   const pointLightRef = useRef<THREE.PointLight>();
+  const directionalLightRef = useRef<THREE.DirectionalLight>();
   const [currentDistance, setCurrentDistance] = useState<number>(0);
   const [currentPosition, setCurrentPosition] = useState<THREE.Vector3>(new THREE.Vector3());
   const [interpolationStore] = useState(() => new QuaternionInterpolationStore());
@@ -277,10 +280,18 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
       pointLightRef.current.visible = pointLight?.enabled === 'on';
       pointLightRef.current.intensity = pointLight?.intensity ?? 1.0;
     }
+
+    // 平行光源の有効/強度の更新
+    if (directionalLightRef.current) {
+      directionalLightRef.current.visible = directionalLight?.enabled === 'on';
+      directionalLightRef.current.intensity = directionalLight?.intensity ?? 1.0;
+    }
   }, [
     ambientLightIntensity,
     pointLight?.enabled,
     pointLight?.intensity,
+    directionalLight?.enabled,
+    directionalLight?.intensity,
   ]);
 
   // Initialize scene on mount
@@ -304,7 +315,11 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
       cameraRef.current = camera;
 
       // Renderer setup
-      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      // near/far の比が非常に大きい（0.001〜1.5e10）ため、通常の深度バッファでは
+      // 精度が足りず線や面がちらつく。対数深度バッファで回避する
+      const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true });
+      // Retina等の高DPI画面で等倍描画→拡大表示になりぼやけるのを防ぐ
+      renderer.setPixelRatio(window.devicePixelRatio);
       renderer.setSize(width, height);
 
       // トーンマッピングを調整
@@ -333,9 +348,17 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
       scene.add(pointLightObj);
       pointLightRef.current = pointLightObj;
 
+      // 平行光源の設定（有効状態・強度・方向は updateLighting / 専用effectで更新）
+      // ターゲットは原点のまま、position を光の来る方向として使う
+      const directionalLightObj = new THREE.DirectionalLight(0xffffff, 0);
+      directionalLightObj.visible = false;
+      scene.add(directionalLightObj);
+      directionalLightRef.current = directionalLightObj;
+
       // Initialize helper classes
       objManager = new ThreeSceneObjectManager(scene, dataProcessor, objectsRef, viewAngleScaling);
       objManager.setCamera(camera); // カメラ参照を設定
+      objManager.setLineResolution(width, height);
       setObjectManager(objManager);
 
       const camController = new CameraController(camera, controls, boundsCalculator, objectsRef, dataProcessor);
@@ -398,7 +421,10 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
       cameraRef.current.aspect = width / height;
       cameraRef.current.updateProjectionMatrix();
     }
-  }, [width, height]);
+    if (objectManager) {
+      objectManager.setLineResolution(width, height);
+    }
+  }, [width, height, objectManager]);
 
   // Update background color
   useEffect(() => {
@@ -661,6 +687,35 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
     pointLight?.posZ?.sourceType,
     pointLight?.posZ?.value,
     pointLight,
+    dataProcessor,
+    data,
+  ]);
+
+  // Handle directional light direction (const or data-field driven), including refresh on data changes
+  useEffect(() => {
+    if (!directionalLightRef.current || !directionalLight || directionalLight.enabled !== 'on') {
+      return;
+    }
+    const dirX = dataProcessor.getLastDataFieldValue(directionalLight.dirX, 1);
+    const dirY = dataProcessor.getLastDataFieldValue(directionalLight.dirY, 1);
+    const dirZ = dataProcessor.getLastDataFieldValue(directionalLight.dirZ, 1);
+
+    const direction = new THREE.Vector3(dirX, dirY, dirZ);
+    if (!isFinite(dirX) || !isFinite(dirY) || !isFinite(dirZ) || direction.lengthSq() === 0) {
+      console.warn('Invalid directional light direction values:', { dirX, dirY, dirZ });
+      return;
+    }
+
+    directionalLightRef.current.position.copy(direction.normalize());
+  }, [
+    directionalLight?.enabled,
+    directionalLight?.dirX?.sourceType,
+    directionalLight?.dirX?.value,
+    directionalLight?.dirY?.sourceType,
+    directionalLight?.dirY?.value,
+    directionalLight?.dirZ?.sourceType,
+    directionalLight?.dirZ?.value,
+    directionalLight,
     dataProcessor,
     data,
   ]);

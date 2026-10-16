@@ -1,5 +1,8 @@
 import * as THREE from 'three';
-import { ModelShape, SphereShape } from '../../types';
+import { PanelData } from '@grafana/data';
+import { Line2 } from 'three/examples/jsm/lines/Line2';
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial';
+import { ModelShape, PolylineShape, SphereShape } from '../../types';
 import { DataFieldProcessor } from './ThreeSceneHelpers';
 import { ThreeSceneObjectManager } from './ThreeSceneObjectManager';
 
@@ -259,5 +262,65 @@ describe('ThreeSceneObjectManager brightness', () => {
     expectColorCloseTo(meshMaterial(darkModel).color, new THREE.Color(0xffffff).multiplyScalar(0.2));
     // The original (shared) material instance itself must be untouched.
     expectColorCloseTo(sharedMaterial.color, new THREE.Color(0xffffff));
+  });
+});
+
+describe('ThreeSceneObjectManager polylines', () => {
+  const field = (value: string) => ({ sourceType: 'field' as const, value });
+
+  const makePolyline = (overrides: Partial<PolylineShape> = {}): PolylineShape => ({
+    id: 'orbit',
+    type: 'polyline',
+    name: 'Orbit',
+    visible: true,
+    strokeSize: 3,
+    strokeColor: '#ff9830',
+    pointsX: field('x'),
+    pointsY: field('y'),
+    pointsZ: field('z'),
+    closePath: 'off',
+    smoothCurve: 'off',
+    ...overrides
+  });
+
+  const setPoints = (manager: ThreeSceneObjectManager, values: Record<string, number[]>) => {
+    (manager as any).dataProcessor.setData({
+      series: [{
+        name: 'orbit',
+        refId: 'A',
+        fields: Object.entries(values).map(([name, fieldValues]) => ({
+          name,
+          values: { length: fieldValues.length, toArray: () => fieldValues },
+        })),
+      }],
+    } as PanelData);
+  };
+
+  it('draws a pixel-width Line2 whose resolution follows the viewport', () => {
+    const { manager } = makeManager();
+    setPoints(manager, { x: [0, 1, 2], y: [0, 1, 0], z: [0, 0, 0] });
+    manager.setLineResolution(640, 480);
+
+    const line = manager.createPolyline(makePolyline());
+    manager.addObjectToScene(line, 'orbit');
+    const material = line.material as LineMaterial;
+
+    expect(line).toBeInstanceOf(Line2);
+    expect(line.visible).toBe(true);
+    expect(material.linewidth).toBe(3);
+    expect(material.worldUnits).toBe(false);
+    expect(material.resolution.toArray()).toEqual([640, 480]);
+    // 3 points -> 2 segments
+    expect(line.geometry.getAttribute('instanceStart').count).toBe(2);
+
+    manager.setLineResolution(800, 600);
+    expect(material.resolution.toArray()).toEqual([800, 600]);
+  });
+
+  it('hides a polyline with fewer than two points', () => {
+    const { manager } = makeManager();
+    setPoints(manager, { x: [1], y: [1], z: [1] });
+
+    expect(manager.createPolyline(makePolyline()).visible).toBe(false);
   });
 });
