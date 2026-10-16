@@ -18,6 +18,8 @@ export class ThreeSceneObjectManager {
   private loadingVersions: Map<string, number> = new Map(); // 非同期処理の競合状態を防ぐ
   // LineMaterial（Line2）は線幅をピクセルで解釈するため、描画領域のサイズが必要
   private lineResolution = new THREE.Vector2(1, 1);
+  // テクスチャの異方性フィルタリング値（レンダラの最大値を設定する）
+  private maxAnisotropy = 1;
 
   constructor(
     scene: THREE.Scene, 
@@ -39,6 +41,29 @@ export class ThreeSceneObjectManager {
   // カメラ参照を設定
   setCamera(camera: THREE.Camera): void {
     this.camera = camera;
+  }
+
+  // 異方性フィルタリングの値を設定（以降に読み込むモデルのテクスチャに適用）
+  setMaxAnisotropy(anisotropy: number): void {
+    this.maxAnisotropy = anisotropy;
+  }
+
+  // モデル内の全テクスチャに異方性フィルタリングを適用し、斜めから見たときのぼやけを抑える
+  private applyAnisotropy(root: THREE.Object3D): void {
+    root.traverse((child) => {
+      if (!(child instanceof THREE.Mesh) || !child.material) {
+        return;
+      }
+      const materials = Array.isArray(child.material) ? child.material : [child.material];
+      materials.forEach((material) => {
+        Object.values(material).forEach((value) => {
+          if (value instanceof THREE.Texture && value.anisotropy !== this.maxAnisotropy) {
+            value.anisotropy = this.maxAnisotropy;
+            value.needsUpdate = true;
+          }
+        });
+      });
+    });
   }
 
   // 描画領域サイズを設定し、既存のポリラインにも反映
@@ -514,6 +539,7 @@ export class ThreeSceneObjectManager {
           // might share the same material instance, then apply the shape's brightness.
           this.prepareMaterialsForBrightness(modelContent);
           this.applyBrightness(modelContent, this.dataProcessor.getBrightnessValue(shape.brightness));
+          this.applyAnisotropy(modelContent);
 
           // Measure the model-authored geometry before applying scene unit scaling,
           // telemetry attitude, or a legacy manual scale.

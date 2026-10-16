@@ -324,3 +324,21 @@ describe('ThreeSceneObjectManager polylines', () => {
     expect(manager.createPolyline(makePolyline()).visible).toBe(false);
   });
 });
+
+describe('ThreeSceneObjectManager texture filtering', () => {
+  it('applies the configured anisotropy to every texture of a loaded model', async () => {
+    const { manager } = makeManager();
+    manager.setMaxAnisotropy(8);
+    const texture = new THREE.Texture();
+
+    (manager as any).gltfLoader.load = jest.fn((_url: string, onLoad: (gltf: any) => void) => {
+      const content = new THREE.Group();
+      content.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ map: texture })));
+      onLoad({ scene: content });
+    });
+
+    await manager.create3DModel(makeModel({ url: 'model.glb' }));
+
+    expect(texture.anisotropy).toBe(8);
+  });
+});

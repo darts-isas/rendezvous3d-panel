@@ -359,6 +359,7 @@ export const ThreeScene: React.FC<ThreeSceneProps> = ({
       objManager = new ThreeSceneObjectManager(scene, dataProcessor, objectsRef, viewAngleScaling);
       objManager.setCamera(camera); // カメラ参照を設定
       objManager.setLineResolution(width, height);
+      objManager.setMaxAnisotropy(renderer.capabilities.getMaxAnisotropy());
       setObjectManager(objManager);
 
       const camController = new CameraController(camera, controls, boundsCalculator, objectsRef, dataProcessor);

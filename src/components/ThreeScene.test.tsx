@@ -19,6 +19,7 @@ jest.mock('three', () => {
 
     setSize = jest.fn();
     setPixelRatio = jest.fn();
+    capabilities = { getMaxAnisotropy: () => 16 };
     render = jest.fn((_scene: THREE.Scene, camera: THREE.PerspectiveCamera) => {
       this.lastCamera = camera;
     });
@@ -62,6 +63,7 @@ jest.mock('./utils/ThreeSceneObjectManager', () => {
 
     setCamera = jest.fn();
     setLineResolution = jest.fn();
+    setMaxAnisotropy = jest.fn();
     updateViewAngleScaling = jest.fn();
     updateGlobalViewAngleSettings = jest.fn();
     removeObjectsFromScene = jest.fn();
